@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <assert.h>
+#include <vector>
 
 
 #define NUM_THREADS 1024
@@ -21,7 +22,7 @@ size_t bitreverse(size_t n, const size_t l)
 }
 
 template<typename FieldT>
-__global__ void serial_fft(FieldT *field, size_t length, const FieldT &omega, const FieldT &one)
+__global__ void cuda_fft(FieldT *field, size_t length, const FieldT &omega, const FieldT &one)
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -102,18 +103,18 @@ __global__ void serial_fft(FieldT *field, size_t length, const FieldT &omega, co
     free(a);
 }
 
-template __global__ void serial_fft<int>
+template __global__ void cuda_fft<int>
     (int *field, size_t length, const int &omega, const int &one);
 
-int main(void) {
 
-    size_t size = 4096;
-    int * array = (int*) malloc(size * sizeof(int));
-    memset(array, 0x1234, size * sizeof(int));
-
-
+template<typename FieldT> void best_fft
+    (std::vector<FieldT> &a, const FieldT &omega, const FieldT &one)
     {
-        serial_fft<int><<<8,8>>>(array, size, 5678, 1);
+        FieldT * array;
+        cudaMalloc((void**) &array, sizeof(FieldT) * a.size());
+        cudaMemcpy(&array, &a[0], sizeof(FieldT) * a.size(), cudaMemcpyHostToDevice);
+
+        cuda_fft<FieldT><<<8,8>>>(array, a.size(), omega, one);
 
         cudaDeviceSynchronize();
 
@@ -125,6 +126,18 @@ int main(void) {
           printf("CUDA error: %s\n", cudaGetErrorString(error));
           exit(-1);
         }
+    }
+
+
+int main(void) {
+
+    size_t size = 4096;
+    int * array = (int*) malloc(size * sizeof(int));
+    memset(array, 0x1234, size * sizeof(int));
+    std::vector<int> v(array, array+size);
+
+    {
+        best_fft<int>(v, 5678, 1);
     }
     
 
