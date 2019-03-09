@@ -43,12 +43,16 @@ size_t bitreverse_host(size_t n, const size_t l)
     }
     return r;
 }
+template<typename FieldT> 
+__constant__ FieldT omega;
+template<typename FieldT> 
+__constant__ FieldT one;
 
 template<typename FieldT>  __global__ void cuda_fft(
-		FieldT *field, size_t const length, FieldT const * omega, FieldT const * one)
+    FieldT *field, size_t const length)
 {
     const int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    printf("%d ",*omega);
+    printf("%d ",omega<FieldT>);
     const size_t log_m = log2f(length);
     
     const size_t block_length = 1ul << (log_m - LOG_NUM_THREADS) ;
@@ -58,33 +62,29 @@ template<typename FieldT>  __global__ void cuda_fft(
         return;
 
     FieldT *a = (FieldT*)malloc(block_length * sizeof(FieldT));
-    memset(a, block_length,  0); //TODO change to zero element 
-    FieldT omg = *omega; 
-    FieldT omega_j = omg^idx;
-    FieldT omega_step = omg^(idx<<(log_m - LOG_NUM_THREADS));
+    memset(a, block_length,  0); //TODO change to zero element
+
+    FieldT omega_j = omega<FieldT>^idx;
+    FieldT omega_step = omega<FieldT>^(idx<<(log_m - LOG_NUM_THREADS));
     
-    printf("%d ",*omega);
-    FieldT elt = *one;
+    FieldT elt = one<FieldT>;
     for (size_t i = 0; i < 1ul<<(log_m - LOG_NUM_THREADS); ++i)
     {
         for (size_t s = 0; s < NUM_THREADS; ++s)
         {
             // invariant: elt is omega^(j*idx)
-            size_t mod = (1u << log_m); //mod guaranteed to be 2^n
-	    size_t id = (i + (s<<(log_m - LOG_NUM_THREADS))) % (1u << log_m);
-	    if(id > length)
-	         continue;
+            //size_t mod = (1u << log_m); //mod guaranteed to be 2^n
+	        size_t id = (i + (s<<(log_m - LOG_NUM_THREADS))) % (1u << log_m);
+	        if(id > length)
+	            continue;
             //size_t id = (i + (s<<(log_m - LOG_NUM_THREADS))) & (mod - 1);
             a[i] += field[id] * elt;
-    printf("%d ",a[i]);
             elt *= omega_step;
-    printf("%d ",*omega);
         }
         elt *= omega_j;
     }
 
-    printf("%d ",*omega);
-    FieldT omega_num_cpus = omg^NUM_THREADS;
+    FieldT omega_num_cpus = omega<FieldT> ^ NUM_THREADS;
     
     size_t n = block_length, logn = log2f(n);
     assert (n == (1u << logn));
@@ -109,10 +109,10 @@ template<typename FieldT>  __global__ void cuda_fft(
 
         for (size_t k = 0; k < n; k += 2*m)
         {
-           // FieldT * w = (FieldT *) malloc (sizeof(FieldT));
-	   // memcpy(w, one, sizeof(FieldT));
-            FieldT w = *one;
-	    for (size_t j = 0; j < m; ++j)
+            // FieldT * w = (FieldT *) malloc (sizeof(FieldT));
+            // memcpy(w, one, sizeof(FieldT));
+            FieldT w = one<FieldT>;
+            for (size_t j = 0; j < m; ++j)
             {
                 const FieldT t = w * a[k+j+m];
                 a[k+j+m] = a[k+j] - t;
@@ -127,14 +127,10 @@ template<typename FieldT>  __global__ void cuda_fft(
     {
         // now: i = idx >> (log_m - log_cpus) and j = idx % (1u << (log_m - log_cpus)), for idx = ((i<<(log_m-log_cpus))+j) % (1u << log_m)
         if(((j << LOG_NUM_THREADS) + idx) < length)
-	    field[(j<<LOG_NUM_THREADS) + idx] = a[j];
+	       field[(j<<LOG_NUM_THREADS) + idx] = a[j];
     }
     free(a);
 }
-
-//template __global__ void cuda_fft<int>
-  //  (int *field, size_t length, const int *omega, const int *one);
-
 
 template<typename FieldT> void best_fft
     (std::vector<FieldT> &a, const FieldT &omega, const FieldT &oneElem)
@@ -142,16 +138,14 @@ template<typename FieldT> void best_fft
         FieldT * array;
         CUDA_CALL( cudaMalloc((void**) &array, sizeof(FieldT) * a.size());)
         CUDA_CALL( cudaMemcpy(array, &a[0], sizeof(FieldT) * a.size(), cudaMemcpyHostToDevice);)
-        FieldT * omg;
-        CUDA_CALL( cudaMalloc((void**) &omg, sizeof(FieldT));)
-        CUDA_CALL( cudaMemcpy(omg, &omega, sizeof(FieldT), cudaMemcpyHostToDevice);)
+        
 
-        FieldT * one;
-        CUDA_CALL( cudaMalloc((void**) &one, sizeof(FieldT));)
-        CUDA_CALL( cudaMemcpy(one, &oneElem, sizeof(FieldT), cudaMemcpyHostToDevice);)
-	int blocks = NUM_THREADS/1024 + 1;
-	int threads = NUM_THREADS > 1024 ? 1024 : NUM_THREADS; 
-        cuda_fft<FieldT><<<blocks,threads>>>(array, a.size(), omg, one);
+        cudaMemcpyToSymbol("omega", &omega, sizeof(FieldT), 0, cudaMemcpyHostToDevice);
+        cudaMemcpyToSymbol("one", &oneElem, sizeof(FieldT), 0, cudaMemcpyHostToDevice);
+
+	    int blocks = NUM_THREADS/1024 + 1;
+	    int threads = NUM_THREADS > 1024 ? 1024 : NUM_THREADS; 
+        cuda_fft<FieldT><<<blocks,threads>>>(array, a.size());
         CUDA_CALL( cudaDeviceSynchronize();)
 
         FieldT * result = (FieldT*) malloc (sizeof(FieldT) * a.size());	

@@ -4,8 +4,8 @@ A GPU snark accelerator written at ETHParis
 
 ## Benchmarks
 
-CPU Intel(R) Xeon(R) CPU E5-2698 v4 @ 2.20GHz
-runs with 8 threads
+CPU Intel(R) Xeon(R) CPU E5-2698 v4 @ 2.20GHz runs with 8 threads
+
 GPU: GTX 1080
 
 Constraints | Constraints | GPU | CPU
