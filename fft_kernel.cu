@@ -13,6 +13,8 @@ typedef std::chrono::high_resolution_clock Clock;
 #define LOG_NUM_THREADS 3
 #define NUM_THREADS 8
 #define MULTICORE true
+#define CONSTRAINTS 4194304
+#define LOG_CONSTRAINTS 22
 
 #define CUDA_CALL( call )               \
 {                                       \
@@ -44,26 +46,25 @@ size_t bitreverse_host(size_t n, const size_t l)
     return r;
 }
 template<typename FieldT> 
-__constant__ FieldT omega;
+__device__ __constant__ FieldT omega;
 template<typename FieldT> 
-__constant__ FieldT one;
+__device__ __constant__ FieldT one;
 
 template<typename FieldT>  __global__ void cuda_fft(
     FieldT *field, size_t const length)
 {
     const int idx = blockIdx.x * blockDim.x + threadIdx.x;
     printf("%d ",omega<FieldT>);
-    const size_t log_m = log2f(length);
+    const size_t log_m = LOG_CONSTRAINTS;
     
     const size_t block_length = 1ul << (log_m - LOG_NUM_THREADS) ;
     const size_t startidx = idx * block_length;
     assert (length == 1ul<<log_m);
     if(startidx > length)
         return;
-
-    FieldT *a = (FieldT*)malloc(block_length * sizeof(FieldT));
+    FieldT a[block_length];
+	    //= (FieldT*)malloc(block_length * sizeof(FieldT));
     memset(a, block_length,  0); //TODO change to zero element
-
     FieldT omega_j = omega<FieldT>^idx;
     FieldT omega_step = omega<FieldT>^(idx<<(log_m - LOG_NUM_THREADS));
     
@@ -78,7 +79,7 @@ template<typename FieldT>  __global__ void cuda_fft(
 	        if(id > length)
 	            continue;
             //size_t id = (i + (s<<(log_m - LOG_NUM_THREADS))) & (mod - 1);
-            a[i] += field[id] * elt;
+	    a[i] += field[id] * elt;
             elt *= omega_step;
         }
         elt *= omega_j;
@@ -133,15 +134,15 @@ template<typename FieldT>  __global__ void cuda_fft(
 }
 
 template<typename FieldT> void best_fft
-    (std::vector<FieldT> &a, const FieldT &omega, const FieldT &oneElem)
+    (std::vector<FieldT> &a, const FieldT &omg, const FieldT &oneElem)
     {
         FieldT * array;
         CUDA_CALL( cudaMalloc((void**) &array, sizeof(FieldT) * a.size());)
         CUDA_CALL( cudaMemcpy(array, &a[0], sizeof(FieldT) * a.size(), cudaMemcpyHostToDevice);)
         
 
-        cudaMemcpyToSymbol("omega", &omega, sizeof(FieldT), 0, cudaMemcpyHostToDevice);
-        cudaMemcpyToSymbol("one", &oneElem, sizeof(FieldT), 0, cudaMemcpyHostToDevice);
+        CUDA_CALL (cudaMemcpyToSymbol(omega<FieldT>, &omg, sizeof(FieldT), 0, cudaMemcpyHostToDevice);)
+        CUDA_CALL (cudaMemcpyToSymbol(one<FieldT>, &oneElem, sizeof(FieldT), 0, cudaMemcpyHostToDevice);)
 
 	    int blocks = NUM_THREADS/1024 + 1;
 	    int threads = NUM_THREADS > 1024 ? 1024 : NUM_THREADS; 
@@ -151,6 +152,7 @@ template<typename FieldT> void best_fft
         FieldT * result = (FieldT*) malloc (sizeof(FieldT) * a.size());	
         cudaMemcpy(result, array, sizeof(FieldT) * a.size(), cudaMemcpyDeviceToHost);
         a.assign(result, result + a.size());
+        CUDA_CALL( cudaDeviceSynchronize();)
  //       printf("%d tick", result[3]);
     }
 
@@ -254,7 +256,7 @@ void _basic_parallel_radix2_FFT_inner(std::vector<FieldT> &a, const FieldT omega
 int main(void) {
 
    // size_t size = 268435456;
-    size_t size = 4194304;
+    size_t size = CONSTRAINTS;
     //size_t size = 65536;
     int * array = (int*) malloc(size * sizeof(int));
     memset(array, 0x1234, size * sizeof(int));
