@@ -1,3 +1,11 @@
+/*****************************************************************************
+ Implementation of Fast Fourier Transformation on Finite Elements
+ *****************************************************************************
+ * @author     Marius van der Wijden
+ * @copyright  currently unlicensed, see README.md
+ *****************************************************************************/
+
+
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <stdio.h>
