@@ -45,13 +45,13 @@ size_t bitreverse_host(size_t n, const size_t l)
 }
 
 template<typename FieldT>  __global__ void cuda_fft(
-		FieldT *field, size_t length, FieldT * omega, FieldT * one)
+		FieldT *field, size_t const length, FieldT const * omega, FieldT const * one)
 {
     const int idx = blockIdx.x * blockDim.x + threadIdx.x;
-
+    printf("%d ",*omega);
     const size_t log_m = log2f(length);
     
-    const size_t block_length = (1ul << (log_m - LOG_NUM_THREADS)) ;
+    const size_t block_length = 1ul << (log_m - LOG_NUM_THREADS) ;
     const size_t startidx = idx * block_length;
     assert (length == 1ul<<log_m);
     if(startidx > length)
@@ -59,10 +59,11 @@ template<typename FieldT>  __global__ void cuda_fft(
 
     FieldT *a = (FieldT*)malloc(block_length * sizeof(FieldT));
     memset(a, block_length,  0); //TODO change to zero element 
-  
-    FieldT omega_j = *omega^idx;
-    FieldT omega_step = *omega^(idx<<(log_m - LOG_NUM_THREADS));
+    FieldT omg = *omega; 
+    FieldT omega_j = omg^idx;
+    FieldT omega_step = omg^(idx<<(log_m - LOG_NUM_THREADS));
     
+    printf("%d ",*omega);
     FieldT elt = *one;
     for (size_t i = 0; i < 1ul<<(log_m - LOG_NUM_THREADS); ++i)
     {
@@ -70,14 +71,20 @@ template<typename FieldT>  __global__ void cuda_fft(
         {
             // invariant: elt is omega^(j*idx)
             size_t mod = (1u << log_m); //mod guaranteed to be 2^n
-            size_t id = (i + (s<<(log_m - LOG_NUM_THREADS))) & (mod - 1);
+	    size_t id = (i + (s<<(log_m - LOG_NUM_THREADS))) % (1u << log_m);
+	    if(id > length)
+	         continue;
+            //size_t id = (i + (s<<(log_m - LOG_NUM_THREADS))) & (mod - 1);
             a[i] += field[id] * elt;
+    printf("%d ",a[i]);
             elt *= omega_step;
+    printf("%d ",*omega);
         }
         elt *= omega_j;
     }
 
-    FieldT omega_num_cpus = *omega^NUM_THREADS;
+    printf("%d ",*omega);
+    FieldT omega_num_cpus = omg^NUM_THREADS;
     
     size_t n = block_length, logn = log2f(n);
     assert (n == (1u << logn));
@@ -119,7 +126,8 @@ template<typename FieldT>  __global__ void cuda_fft(
     for (size_t j = 0; j < 1ul<<(log_m - LOG_NUM_THREADS); ++j)
     {
         // now: i = idx >> (log_m - log_cpus) and j = idx % (1u << (log_m - log_cpus)), for idx = ((i<<(log_m-log_cpus))+j) % (1u << log_m)
-        field[(j<<LOG_NUM_THREADS) + idx] = a[j];
+        if(((j << LOG_NUM_THREADS) + idx) < length)
+	    field[(j<<LOG_NUM_THREADS) + idx] = a[j];
     }
     free(a);
 }
@@ -153,7 +161,7 @@ template<typename FieldT> void best_fft
     }
 
 template<typename FieldT>
-void _basic_serial_radix2_FFT(std::vector<FieldT> &a, const FieldT &omega, const FieldT &one)
+void _basic_serial_radix2_FFT(std::vector<FieldT> &a, const FieldT omega, const FieldT one)
 {
     const size_t n = a.size(), logn = log2(n);
     
@@ -189,7 +197,7 @@ void _basic_serial_radix2_FFT(std::vector<FieldT> &a, const FieldT &omega, const
 }
 
 template<typename FieldT>
-void _basic_parallel_radix2_FFT_inner(std::vector<FieldT> &a, const FieldT &omega, const size_t log_cpus, const FieldT &one)
+void _basic_parallel_radix2_FFT_inner(std::vector<FieldT> &a, const FieldT omega, const size_t log_cpus, const FieldT one)
 {
     const size_t num_cpus = 1ul<<log_cpus;
 
@@ -252,8 +260,8 @@ void _basic_parallel_radix2_FFT_inner(std::vector<FieldT> &a, const FieldT &omeg
 int main(void) {
 
    // size_t size = 268435456;
-   // size_t size = 4194304;
-    size_t size = 65536;
+    size_t size = 4194304;
+    //size_t size = 65536;
     int * array = (int*) malloc(size * sizeof(int));
     memset(array, 0x1234, size * sizeof(int));
     std::vector<int> v1(array, array+size);
@@ -263,13 +271,13 @@ int main(void) {
     omp_set_num_threads( 8 );
 
     {
-        {/*
+        {
             auto t1 = Clock::now();
             best_fft<int>(v1, 5678, 1);
             auto t2 = Clock::now();
             printf("Device FFT took %lld \n",
                 std::chrono::duration_cast<
-                std::chrono::milliseconds>(t2 - t1).count());*/
+                std::chrono::milliseconds>(t2 - t1).count());
         }
         
         {
@@ -282,7 +290,7 @@ int main(void) {
         }
         
         
-        _basic_parallel_radix2_FFT_inner<int> (v1, 5678, 5, 1);
+       // _basic_parallel_radix2_FFT_inner<int> (v1, 5678, 5, 1);
     }
     
 
