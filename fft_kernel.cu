@@ -5,10 +5,14 @@
 #include <assert.h>
 #include <vector>
 #include <iostream>
+#include <chrono>
+#include <omp.h>
+typedef std::chrono::high_resolution_clock Clock;
 
 
-#define NUM_THREADS 16
-#define LOG_NUM_THREADS 4
+#define LOG_NUM_THREADS 3
+#define NUM_THREADS 8
+#define MULTICORE true
 
 #define CUDA_CALL( call )               \
 {                                       \
@@ -45,11 +49,6 @@ template<typename FieldT>  __global__ void cuda_fft(
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if(idx == 0)
-    {
-        //TODO maybe pad array with zeroes
-
-    }
     size_t log_m = log2f(length);
     size_t block_length = (1ul << (log_m - LOG_NUM_THREADS)) ;
     size_t startidx = idx * block_length;
@@ -58,17 +57,11 @@ template<typename FieldT>  __global__ void cuda_fft(
         return;
 
     FieldT *a = (FieldT*)malloc(block_length * sizeof(FieldT));
-    //if(startidx + block_length > length){
-//	int overlap = length - (startidx + block_length);
-	//memset(a + (length - overlap), overlap,  0); //TODO change to zero element 
-	memset(a, block_length,  0); //TODO change to zero element 
-  //  }
-    //memcpy(a, field, block_length * sizeof(FieldT));
-
+    memset(a, block_length,  0); //TODO change to zero element 
+  
     FieldT omega_j = *omega^idx;
     FieldT omega_step = *omega^(idx<<(log_m - LOG_NUM_THREADS));
-    if(idx == 0)
-	printf("omega_dev: %d %d \n", omega_j, omega_step);
+    
     FieldT elt = *one;
     for (size_t i = 0; i < 1ul<<(log_m - LOG_NUM_THREADS); ++i)
     {
@@ -84,8 +77,7 @@ template<typename FieldT>  __global__ void cuda_fft(
     }
 
     FieldT omega_num_cpus = *omega^NUM_THREADS;
-    if(idx == 0)
-	printf("device: %d \n ", a[0]);
+    
     size_t n = block_length, logn = log2f(n);
     assert (n == (1u << logn));
 
@@ -213,15 +205,13 @@ void _basic_parallel_radix2_FFT_inner(std::vector<FieldT> &a, const FieldT &omeg
         tmp[j].resize(1ul<<(log_m-log_cpus), 0);
     }
 
-#ifdef MULTICORE
-    #pragma omp parallel for
-#endif
+    #pragma omp parallel for num_threads(NUM_THREADS)
     for (size_t j = 0; j < num_cpus; ++j)
     {
         const FieldT omega_j = omega^j;
         const FieldT omega_step = omega^(j<<(log_m - log_cpus));
 	
-	printf("omega_host: %d %d \n", omega_j, omega_step);
+	    //printf("omega_host: %d %d \n", omega_j, omega_step);
         FieldT elt = one;
         for (size_t i = 0; i < 1ul<<(log_m - log_cpus); ++i)
         {
@@ -238,17 +228,14 @@ void _basic_parallel_radix2_FFT_inner(std::vector<FieldT> &a, const FieldT &omeg
     printf("host: %d \n ", tmp[0][0]);
     const FieldT omega_num_cpus = omega^num_cpus;
 
-#ifdef MULTICORE
     #pragma omp parallel for
-#endif
     for (size_t j = 0; j < num_cpus; ++j)
     {
         _basic_serial_radix2_FFT(tmp[j], omega_num_cpus, one);
     }
 
-#ifdef MULTICORE
+
     #pragma omp parallel for
-#endif
     for (size_t i = 0; i < num_cpus; ++i)
     {
         for (size_t j = 0; j < 1ul<<(log_m - log_cpus); ++j)
@@ -261,21 +248,41 @@ void _basic_parallel_radix2_FFT_inner(std::vector<FieldT> &a, const FieldT &omeg
 
 int main(void) {
 
-    size_t size = 4096;
+    size_t size = 268435456;
     int * array = (int*) malloc(size * sizeof(int));
     memset(array, 0x1234, size * sizeof(int));
     std::vector<int> v1(array, array+size);
     std::vector<int> v2 = v1;
 
+    printf("max_threads: %d \n", omp_get_max_threads());
+    omp_set_num_threads( 8 );
+
     {
-        best_fft<int>(v1, 5678, 1);
-        _basic_parallel_radix2_FFT_inner<int> (v2, 5678, 4, 1);
+        {
+            auto t1 = Clock::now();
+            best_fft<int>(v1, 5678, 1);
+            auto t2 = Clock::now();
+            printf("Device FFT took %ld \n",
+                std::chrono::duration_cast<
+                std::chrono::nanoseconds>(t2 - t1).count());
+        }
+        
+        {
+            auto t1 = Clock::now();
+            _basic_parallel_radix2_FFT_inner<int> (v2, 5678, LOG_NUM_THREADS, 1);
+            auto t2 = Clock::now();
+            printf("Host FFT took %ld \n",
+                std::chrono::duration_cast<
+                std::chrono::nanoseconds>(t2 - t1).count());
+        }
+        
+        
         //_basic_parallel_radix2_FFT_inner<int> (v1, 5678, 5, 1);
     }
     
 
     for(int j = 0; j < size; j++) {
-//        printf("%d ", v1[j]);
+        //printf("%d ", v1[j]);
     }
     printf("####################################\n");
     for(int j = 0; j < size; j++) {
