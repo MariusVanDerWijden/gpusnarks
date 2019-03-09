@@ -7,8 +7,8 @@
 #include <iostream>
 
 
-#define NUM_THREADS 1024
-#define LOG_NUM_THREADS 10
+#define NUM_THREADS 16
+#define LOG_NUM_THREADS 4
 
 #define CUDA_CALL( call )               \
 {                                       \
@@ -50,19 +50,25 @@ template<typename FieldT>  __global__ void cuda_fft(
         //TODO maybe pad array with zeroes
 
     }
-    size_t block_length = length / NUM_THREADS;
-    size_t startidx = idx * block_length;
     size_t log_m = log2f(length);
+    size_t block_length = (1ul << (log_m - LOG_NUM_THREADS)) ;
+    size_t startidx = idx * block_length;
     assert (length == 1ul<<log_m);
-    if(startidx + block_length > length)
+    if(startidx > length)
         return;
 
     FieldT *a = (FieldT*)malloc(block_length * sizeof(FieldT));
-    memcpy(a, field, block_length * sizeof(FieldT));
+    //if(startidx + block_length > length){
+//	int overlap = length - (startidx + block_length);
+	//memset(a + (length - overlap), overlap,  0); //TODO change to zero element 
+	memset(a, block_length,  0); //TODO change to zero element 
+  //  }
+    //memcpy(a, field, block_length * sizeof(FieldT));
 
     FieldT omega_j = *omega^idx;
     FieldT omega_step = *omega^(idx<<(log_m - LOG_NUM_THREADS));
-
+    if(idx == 0)
+	printf("omega_dev: %d %d \n", omega_j, omega_step);
     FieldT elt = *one;
     for (size_t i = 0; i < 1ul<<(log_m - LOG_NUM_THREADS); ++i)
     {
@@ -78,7 +84,8 @@ template<typename FieldT>  __global__ void cuda_fft(
     }
 
     FieldT omega_num_cpus = *omega^NUM_THREADS;
-
+    if(idx == 0)
+	printf("device: %d \n ", a[0]);
     size_t n = block_length, logn = log2f(n);
     assert (n == (1u << logn));
 
@@ -102,13 +109,14 @@ template<typename FieldT>  __global__ void cuda_fft(
 
         for (size_t k = 0; k < n; k += 2*m)
         {
-            FieldT w = *one;
+            FieldT * w = (FieldT *) malloc (sizeof(FieldT));
+	    memcpy(w, one, sizeof(FieldT));
             for (size_t j = 0; j < m; ++j)
             {
-                const FieldT t = w * a[k+j+m];
+                const FieldT t = *w * a[k+j+m];
                 a[k+j+m] = a[k+j] - t;
                 a[k+j] += t;
-                w *= w_m;
+                *w *= w_m;
             }
         }
         m *= 2;
@@ -140,13 +148,13 @@ template<typename FieldT> void best_fft
         CUDA_CALL( cudaMalloc((void**) &one, sizeof(FieldT));)
         CUDA_CALL( cudaMemcpy(one, &oneElem, sizeof(FieldT), cudaMemcpyHostToDevice);)
 
-        cuda_fft<FieldT><<<8,8>>>(array, a.size(), omg, one);
+        cuda_fft<FieldT><<<1,NUM_THREADS>>>(array, a.size(), omg, one);
         CUDA_CALL( cudaDeviceSynchronize();)
 
         FieldT * result = (FieldT*) malloc (sizeof(FieldT) * a.size());	
         cudaMemcpy(result, array, sizeof(FieldT) * a.size(), cudaMemcpyDeviceToHost);
         a.assign(result, result + a.size());
-        printf("%d tick", result[3]);
+ //       printf("%d tick", result[3]);
     }
 
 template<typename FieldT>
@@ -212,7 +220,8 @@ void _basic_parallel_radix2_FFT_inner(std::vector<FieldT> &a, const FieldT &omeg
     {
         const FieldT omega_j = omega^j;
         const FieldT omega_step = omega^(j<<(log_m - log_cpus));
-
+	
+	printf("omega_host: %d %d \n", omega_j, omega_step);
         FieldT elt = one;
         for (size_t i = 0; i < 1ul<<(log_m - log_cpus); ++i)
         {
@@ -226,7 +235,7 @@ void _basic_parallel_radix2_FFT_inner(std::vector<FieldT> &a, const FieldT &omeg
             elt *= omega_j;
         }
     }
-
+    printf("host: %d \n ", tmp[0][0]);
     const FieldT omega_num_cpus = omega^num_cpus;
 
 #ifdef MULTICORE
@@ -261,15 +270,18 @@ int main(void) {
     {
         best_fft<int>(v1, 5678, 1);
         _basic_parallel_radix2_FFT_inner<int> (v2, 5678, 4, 1);
+        //_basic_parallel_radix2_FFT_inner<int> (v1, 5678, 5, 1);
     }
     
 
     for(int j = 0; j < size; j++) {
-        printf("%d ", v1[j]);
+//        printf("%d ", v1[j]);
     }
     printf("####################################\n");
     for(int j = 0; j < size; j++) {
-        printf("%d ", v2[j]);
+  //	    printf("%d ", v2[j]);
     }
+    assert(v1 == v2);
+    printf("\nDONE\n");
     return 0;
 }
