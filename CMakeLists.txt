@@ -9,7 +9,7 @@ if (OPENMP_FOUND)
 endif()
 set(CMAKE_C_COMPILER /usr/bin/gcc-6)
 set(CMAKE_CXX_COMPILER /usr/bin/g++-6)
-
+string(APPEND CMAKE_CUDA_FLAGS " -gencode arch=compute_50,code=sm_50")
 
 cuda_add_executable(fft_cuda fft_kernel.cu)
 

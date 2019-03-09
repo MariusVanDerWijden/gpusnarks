@@ -10,11 +10,11 @@
 typedef std::chrono::high_resolution_clock Clock;
 
 
-#define LOG_NUM_THREADS 3
-#define NUM_THREADS 8
+#define LOG_NUM_THREADS 16 
+#define NUM_THREADS 65536
 #define MULTICORE true
-#define CONSTRAINTS 4194304
-#define LOG_CONSTRAINTS 22
+#define CONSTRAINTS 268435456
+#define LOG_CONSTRAINTS 28
 
 #define CUDA_CALL( call )               \
 {                                       \
@@ -49,21 +49,20 @@ template<typename FieldT>
 __device__ __constant__ FieldT omega;
 template<typename FieldT> 
 __device__ __constant__ FieldT one;
+template<typename FieldT>
+__device__ FieldT field[CONSTRAINTS];
 
-template<typename FieldT>  __global__ void cuda_fft(
-    FieldT *field, size_t const length)
+template<typename FieldT>  __global__ void cuda_fft()
 {
     const int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    printf("%d ",omega<FieldT>);
     const size_t log_m = LOG_CONSTRAINTS;
-    
+    const size_t length = CONSTRAINTS;
     const size_t block_length = 1ul << (log_m - LOG_NUM_THREADS) ;
     const size_t startidx = idx * block_length;
-    assert (length == 1ul<<log_m);
+    assert (CONSTRAINTS == 1ul<<log_m);
     if(startidx > length)
         return;
-    FieldT a[block_length];
-	    //= (FieldT*)malloc(block_length * sizeof(FieldT));
+    FieldT a [block_length];
     memset(a, block_length,  0); //TODO change to zero element
     FieldT omega_j = omega<FieldT>^idx;
     FieldT omega_step = omega<FieldT>^(idx<<(log_m - LOG_NUM_THREADS));
@@ -79,8 +78,8 @@ template<typename FieldT>  __global__ void cuda_fft(
 	        if(id > length)
 	            continue;
             //size_t id = (i + (s<<(log_m - LOG_NUM_THREADS))) & (mod - 1);
-	    a[i] += field[id] * elt;
-            elt *= omega_step;
+		a[i] += field<FieldT>[id] * elt;
+                elt *= omega_step;
         }
         elt *= omega_j;
     }
@@ -123,37 +122,42 @@ template<typename FieldT>  __global__ void cuda_fft(
         }
         m *= 2;
     }
-
+    __syncthreads();
     for (size_t j = 0; j < 1ul<<(log_m - LOG_NUM_THREADS); ++j)
     {
-        // now: i = idx >> (log_m - log_cpus) and j = idx % (1u << (log_m - log_cpus)), for idx = ((i<<(log_m-log_cpus))+j) % (1u << log_m)
         if(((j << LOG_NUM_THREADS) + idx) < length)
-	       field[(j<<LOG_NUM_THREADS) + idx] = a[j];
+	       field<FieldT>[(j<<LOG_NUM_THREADS) + idx] = a[j];
     }
-    free(a);
 }
 
 template<typename FieldT> void best_fft
     (std::vector<FieldT> &a, const FieldT &omg, const FieldT &oneElem)
     {
-        FieldT * array;
-        CUDA_CALL( cudaMalloc((void**) &array, sizeof(FieldT) * a.size());)
-        CUDA_CALL( cudaMemcpy(array, &a[0], sizeof(FieldT) * a.size(), cudaMemcpyHostToDevice);)
+	FieldT* fld;
+	CUDA_CALL (cudaGetSymbolAddress((void **)&fld, field<FieldT>));
+        CUDA_CALL( cudaMemcpy(fld, &a[0], sizeof(FieldT) * a.size(), cudaMemcpyHostToDevice);)
         
-
-        CUDA_CALL (cudaMemcpyToSymbol(omega<FieldT>, &omg, sizeof(FieldT), 0, cudaMemcpyHostToDevice);)
-        CUDA_CALL (cudaMemcpyToSymbol(one<FieldT>, &oneElem, sizeof(FieldT), 0, cudaMemcpyHostToDevice);)
-
-	    int blocks = NUM_THREADS/1024 + 1;
-	    int threads = NUM_THREADS > 1024 ? 1024 : NUM_THREADS; 
-        cuda_fft<FieldT><<<blocks,threads>>>(array, a.size());
-        CUDA_CALL( cudaDeviceSynchronize();)
+        cudaMemcpyToSymbol(omega<FieldT>, &omg, sizeof(FieldT), 0, cudaMemcpyHostToDevice);
+        cudaMemcpyToSymbol(one<FieldT>, &oneElem, sizeof(FieldT), 0, cudaMemcpyHostToDevice);
+	
+	int blocks = NUM_THREADS/1024 > 0? NUM_THREADS/1024 : 1;
+	int threads = NUM_THREADS > 1024 ? 1024 : NUM_THREADS; 
+        printf("blocks %d, threads %d \n",blocks,threads);
+	cuda_fft<FieldT> <<<blocks,threads>>>();
+        
+	cudaError_t error = cudaGetLastError();
+  	if(error != cudaSuccess)
+  	{
+    		// print the CUDA error message and exit
+    		printf("CUDA error: %s\n", cudaGetErrorString(error));
+    		exit(-1);
+  	}
+	CUDA_CALL( cudaDeviceSynchronize();)
 
         FieldT * result = (FieldT*) malloc (sizeof(FieldT) * a.size());	
-        cudaMemcpy(result, array, sizeof(FieldT) * a.size(), cudaMemcpyDeviceToHost);
+        cudaMemcpy(result, fld, sizeof(FieldT) * a.size(), cudaMemcpyDeviceToHost);
         a.assign(result, result + a.size());
         CUDA_CALL( cudaDeviceSynchronize();)
- //       printf("%d tick", result[3]);
     }
 
 template<typename FieldT>
