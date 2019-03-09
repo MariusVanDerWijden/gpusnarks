@@ -47,11 +47,12 @@ size_t bitreverse_host(size_t n, const size_t l)
 template<typename FieldT>  __global__ void cuda_fft(
 		FieldT *field, size_t length, FieldT * omega, FieldT * one)
 {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    size_t log_m = log2f(length);
-    size_t block_length = (1ul << (log_m - LOG_NUM_THREADS)) ;
-    size_t startidx = idx * block_length;
+    const size_t log_m = log2f(length);
+    
+    const size_t block_length = (1ul << (log_m - LOG_NUM_THREADS)) ;
+    const size_t startidx = idx * block_length;
     assert (length == 1ul<<log_m);
     if(startidx > length)
         return;
@@ -101,14 +102,15 @@ template<typename FieldT>  __global__ void cuda_fft(
 
         for (size_t k = 0; k < n; k += 2*m)
         {
-            FieldT * w = (FieldT *) malloc (sizeof(FieldT));
-	    memcpy(w, one, sizeof(FieldT));
-            for (size_t j = 0; j < m; ++j)
+           // FieldT * w = (FieldT *) malloc (sizeof(FieldT));
+	   // memcpy(w, one, sizeof(FieldT));
+            FieldT w = *one;
+	    for (size_t j = 0; j < m; ++j)
             {
-                const FieldT t = *w * a[k+j+m];
+                const FieldT t = w * a[k+j+m];
                 a[k+j+m] = a[k+j] - t;
                 a[k+j] += t;
-                *w *= w_m;
+                w *= w_m;
             }
         }
         m *= 2;
@@ -139,8 +141,9 @@ template<typename FieldT> void best_fft
         FieldT * one;
         CUDA_CALL( cudaMalloc((void**) &one, sizeof(FieldT));)
         CUDA_CALL( cudaMemcpy(one, &oneElem, sizeof(FieldT), cudaMemcpyHostToDevice);)
-
-        cuda_fft<FieldT><<<1,NUM_THREADS>>>(array, a.size(), omg, one);
+	int blocks = NUM_THREADS/1024 + 1;
+	int threads = NUM_THREADS > 1024 ? 1024 : NUM_THREADS; 
+        cuda_fft<FieldT><<<blocks,threads>>>(array, a.size(), omg, one);
         CUDA_CALL( cudaDeviceSynchronize();)
 
         FieldT * result = (FieldT*) malloc (sizeof(FieldT) * a.size());	
@@ -205,7 +208,7 @@ void _basic_parallel_radix2_FFT_inner(std::vector<FieldT> &a, const FieldT &omeg
         tmp[j].resize(1ul<<(log_m-log_cpus), 0);
     }
 
-    #pragma omp parallel for num_threads(NUM_THREADS)
+    #pragma omp parallel for
     for (size_t j = 0; j < num_cpus; ++j)
     {
         const FieldT omega_j = omega^j;
@@ -248,36 +251,38 @@ void _basic_parallel_radix2_FFT_inner(std::vector<FieldT> &a, const FieldT &omeg
 
 int main(void) {
 
-    size_t size = 268435456;
+   // size_t size = 268435456;
+   // size_t size = 4194304;
+    size_t size = 65536;
     int * array = (int*) malloc(size * sizeof(int));
     memset(array, 0x1234, size * sizeof(int));
     std::vector<int> v1(array, array+size);
     std::vector<int> v2 = v1;
 
-    printf("max_threads: %d \n", omp_get_max_threads());
+   // printf("max_threads: %d \n", omp_get_max_threads());
     omp_set_num_threads( 8 );
 
     {
-        {
+        {/*
             auto t1 = Clock::now();
             best_fft<int>(v1, 5678, 1);
             auto t2 = Clock::now();
-            printf("Device FFT took %ld \n",
+            printf("Device FFT took %lld \n",
                 std::chrono::duration_cast<
-                std::chrono::nanoseconds>(t2 - t1).count());
+                std::chrono::milliseconds>(t2 - t1).count());*/
         }
         
         {
             auto t1 = Clock::now();
             _basic_parallel_radix2_FFT_inner<int> (v2, 5678, LOG_NUM_THREADS, 1);
             auto t2 = Clock::now();
-            printf("Host FFT took %ld \n",
+            printf("Host FFT took %lld \n",
                 std::chrono::duration_cast<
-                std::chrono::nanoseconds>(t2 - t1).count());
+                std::chrono::milliseconds>(t2 - t1).count());
         }
         
         
-        //_basic_parallel_radix2_FFT_inner<int> (v1, 5678, 5, 1);
+        _basic_parallel_radix2_FFT_inner<int> (v1, 5678, 5, 1);
     }
     
 
