@@ -4,10 +4,18 @@
 #include <math.h>
 #include <assert.h>
 #include <vector>
+#include <iostream>
 
 
 #define NUM_THREADS 1024
 #define LOG_NUM_THREADS 10
+
+#define CUDA_CALL( call )               \
+{                                       \
+cudaError_t result = call;              \
+if ( cudaSuccess != result )            \
+    std::cerr << "CUDA error " << result << " in " << __FILE__ << ":" << __LINE__ << ": " << cudaGetErrorString( result ) << " (" << #call << ")" << std::endl;  \
+}
 
 __device__ __forceinline__
 size_t bitreverse(size_t n, const size_t l)
@@ -21,8 +29,8 @@ size_t bitreverse(size_t n, const size_t l)
     return r;
 }
 
-template<typename FieldT>
-__global__ void cuda_fft(FieldT *field, size_t length, const FieldT &omega, const FieldT &one)
+template<typename FieldT>  __global__ void cuda_fft(
+		FieldT *field, size_t length, FieldT * omega, FieldT * one)
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -41,10 +49,10 @@ __global__ void cuda_fft(FieldT *field, size_t length, const FieldT &omega, cons
     FieldT *a = (FieldT*)malloc(block_length * sizeof(FieldT));
     memcpy(a, field, block_length * sizeof(FieldT));
 
-    FieldT omega_j = omega^idx;
-    FieldT omega_step = omega^(idx<<(log_m - LOG_NUM_THREADS));
+    FieldT omega_j = *omega^idx;
+    FieldT omega_step = *omega^(idx<<(log_m - LOG_NUM_THREADS));
 
-    FieldT elt = one;
+    FieldT elt = *one;
     for (size_t i = 0; i < 1ul<<(log_m - LOG_NUM_THREADS); ++i)
     {
         for (size_t s = 0; s < NUM_THREADS; ++s)
@@ -58,7 +66,7 @@ __global__ void cuda_fft(FieldT *field, size_t length, const FieldT &omega, cons
         elt *= omega_j;
     }
 
-    FieldT omega_num_cpus = omega^NUM_THREADS;
+    FieldT omega_num_cpus = *omega^NUM_THREADS;
 
     size_t n = block_length, logn = log2f(n);
     assert (n == (1u << logn));
@@ -83,7 +91,7 @@ __global__ void cuda_fft(FieldT *field, size_t length, const FieldT &omega, cons
 
         for (size_t k = 0; k < n; k += 2*m)
         {
-            FieldT w = one;
+            FieldT w = *one;
             for (size_t j = 0; j < m; ++j)
             {
                 const FieldT t = w * a[k+j+m];
@@ -103,29 +111,31 @@ __global__ void cuda_fft(FieldT *field, size_t length, const FieldT &omega, cons
     free(a);
 }
 
-template __global__ void cuda_fft<int>
-    (int *field, size_t length, const int &omega, const int &one);
+//template __global__ void cuda_fft<int>
+  //  (int *field, size_t length, const int *omega, const int *one);
 
 
 template<typename FieldT> void best_fft
-    (std::vector<FieldT> &a, const FieldT &omega, const FieldT &one)
+    (std::vector<FieldT> &a, const FieldT &omega, const FieldT &oneElem)
     {
         FieldT * array;
-        cudaMalloc((void**) &array, sizeof(FieldT) * a.size());
-        cudaMemcpy(&array, &a[0], sizeof(FieldT) * a.size(), cudaMemcpyHostToDevice);
+        CUDA_CALL( cudaMalloc((void**) &array, sizeof(FieldT) * a.size());)
+ 	CUDA_CALL( cudaMemcpy(array, &a[0], sizeof(FieldT) * a.size(), cudaMemcpyHostToDevice);)
+        FieldT * omg;
+	CUDA_CALL( cudaMalloc((void**) &omg, sizeof(FieldT));)
+ 	CUDA_CALL( cudaMemcpy(omg, &omega, sizeof(FieldT), cudaMemcpyHostToDevice);)
 
-        cuda_fft<FieldT><<<8,8>>>(array, a.size(), omega, one);
+        FieldT * one;
+	CUDA_CALL( cudaMalloc((void**) &one, sizeof(FieldT));)
+ 	CUDA_CALL( cudaMemcpy(one, &oneElem, sizeof(FieldT), cudaMemcpyHostToDevice);)
 
-        cudaDeviceSynchronize();
-
-        // check for error
-        cudaError_t error = cudaGetLastError();
-        if(error != cudaSuccess)
-        {
-          // print the CUDA error message and exit
-          printf("CUDA error: %s\n", cudaGetErrorString(error));
-          exit(-1);
-        }
+        cuda_fft<FieldT><<<8,8>>>(array, a.size(), omg, one);
+        CUDA_CALL( cudaDeviceSynchronize();)
+	
+	FieldT * result = (FieldT*) malloc (sizeof(FieldT) * a.size());	
+	cudaMemcpy(result, array, sizeof(FieldT) * a.size(), cudaMemcpyDeviceToHost);
+  	a.assign(result, result + a.size());
+	printf("%d tick", result[3]);
     }
 
 
@@ -142,7 +152,7 @@ int main(void) {
     
 
     for(int j = 0; j < size; j++) {
-        printf("%d ", array[j]);
+        printf("%d ", v[j]);
     }
     return 0;
 }
