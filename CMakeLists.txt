@@ -11,6 +11,8 @@ set(CMAKE_C_COMPILER /usr/bin/gcc-6)
 set(CMAKE_CXX_COMPILER /usr/bin/g++-6)
 string(APPEND CMAKE_CUDA_FLAGS " -gencode arch=compute_50,code=sm_50")
 
+include_directories( ${MY_SOURCE_DIR})
+
 cuda_add_executable(fft_cuda fft_kernel.cu)
 
 if(OpenMP_CXX_FOUND)
