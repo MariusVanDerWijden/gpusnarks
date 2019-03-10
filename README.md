@@ -1,6 +1,7 @@
 # GPU-SNARK
 
-A GPU snark accelerator written at ETHParis 
+A GPU snark accelerator written at ETHParis.
+It speeds up the Fast Fourier Transformation on Finite Elements by more than **40 times**
 
 ## Setup
 
