@@ -18,11 +18,11 @@
 typedef std::chrono::high_resolution_clock Clock;
 
 
-#define LOG_NUM_THREADS 16 
-#define NUM_THREADS 65536
+#define LOG_NUM_THREADS 11 
+#define NUM_THREADS 2048
 #define MULTICORE true
-#define CONSTRAINTS 268435456
-#define LOG_CONSTRAINTS 28
+#define CONSTRAINTS 4194304
+#define LOG_CONSTRAINTS 22
 
 #define CUDA_CALL( call )               \
 {                                       \
