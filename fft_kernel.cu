@@ -2,8 +2,20 @@
  Implementation of Fast Fourier Transformation on Finite Elements
  *****************************************************************************
  * @author     Marius van der Wijden
- * @copyright  currently unlicensed, see README.md
+ * Copyright [2019] [Marius van der Wijden]
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *****************************************************************************/
+
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <stdio.h>
@@ -27,7 +39,6 @@ cudaError_t result = call;              \
 if ( cudaSuccess != result )            \
     std::cerr << "CUDA error " << result << " in " << __FILE__ << ":" << __LINE__ << ": " << cudaGetErrorString( result ) << " (" << #call << ")" << std::endl;  \
 }
-
 
 __device__ __forceinline__
 size_t bitreverse(size_t n, const size_t l)
@@ -174,7 +185,7 @@ int main(void)
             auto t1 = Clock::now();
             best_fft<int>(v1, 5678, 1);
             auto t2 = Clock::now();
-            printf("Device FFT took %lld \n",
+            printf("Device FFT took %ld \n",
                 std::chrono::duration_cast<
                 std::chrono::milliseconds>(t2 - t1).count());
         }
@@ -183,7 +194,7 @@ int main(void)
             auto t1 = Clock::now();
             _basic_parallel_radix2_FFT_inner<int> (v2, 5678, LOG_NUM_THREADS, 1);
             auto t2 = Clock::now();
-            printf("Host FFT took %lld \n",
+            printf("Host FFT took %ld \n",
                 std::chrono::duration_cast<
                 std::chrono::milliseconds>(t2 - t1).count());
         }
