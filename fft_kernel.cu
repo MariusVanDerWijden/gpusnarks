@@ -56,6 +56,8 @@ template<typename FieldT>
 __device__ __constant__ FieldT omega;
 template<typename FieldT> 
 __device__ __constant__ FieldT one;
+template<typename FieldT> 
+__device__ __constant__ FieldT zero;
 template<typename FieldT>
 __device__ FieldT field[CONSTRAINTS];
 template<typename FieldT>
@@ -72,9 +74,9 @@ template<typename FieldT>  __global__ void cuda_fft()
     if(startidx > length)
         return;
     FieldT a [block_length];
-    memset(a, block_length,  0); 
-	//TODO change to zero element
-    	//TODO algorithm is non-deterministic because of padding
+    memset(a, block_length,  zero<FieldT>); 
+    //TODO change to zero element
+    //TODO algorithm is non-deterministic because of padding
 
     FieldT omega_j = omega<FieldT>^idx;
     FieldT omega_step = omega<FieldT>^(idx<<(log_m - LOG_NUM_THREADS));
@@ -85,8 +87,8 @@ template<typename FieldT>  __global__ void cuda_fft()
         for (size_t s = 0; s < NUM_THREADS; ++s)
         {
             // invariant: elt is omega^(j*idx)
-	    size_t id = (i + (s<<(log_m - LOG_NUM_THREADS))) % (1u << log_m);
-	    a[i] += field<FieldT>[id] * elt;
+        size_t id = (i + (s<<(log_m - LOG_NUM_THREADS))) % (1u << log_m);
+        a[i] += field<FieldT>[id] * elt;
             elt *= omega_step;
         }
         elt *= omega_j;
@@ -131,42 +133,45 @@ template<typename FieldT>  __global__ void cuda_fft()
     for (size_t j = 0; j < 1ul<<(log_m - LOG_NUM_THREADS); ++j)
     {
         if(((j << LOG_NUM_THREADS) + idx) < length)
-	    out<FieldT>[(j<<LOG_NUM_THREADS) + idx] = a[j];
+        out<FieldT>[(j<<LOG_NUM_THREADS) + idx] = a[j];
     }
 }
 
 template<typename FieldT> void best_fft
-    (std::vector<FieldT> &a, const FieldT &omg, const FieldT &oneElem)
+    (std::vector<FieldT> &a, const FieldT &omg)
 {
-	FieldT* fld;
-	CUDA_CALL (cudaGetSymbolAddress((void **)&fld, field<FieldT>));
-        CUDA_CALL( cudaMemcpy(fld, &a[0], sizeof(FieldT) * a.size(), cudaMemcpyHostToDevice);)
-        
-        cudaMemcpyToSymbol(omega<FieldT>, &omg, sizeof(FieldT), 0, cudaMemcpyHostToDevice);
-        cudaMemcpyToSymbol(one<FieldT>, &oneElem, sizeof(FieldT), 0, cudaMemcpyHostToDevice);
-	
-	int blocks = NUM_THREADS/1024 > 0? NUM_THREADS/1024 : 1;
-	int threads = NUM_THREADS > 1024 ? 1024 : NUM_THREADS; 
-        printf("blocks %d, threads %d \n",blocks,threads);
-	cuda_fft<FieldT> <<<blocks,threads>>>();
-        
-	cudaError_t error = cudaGetLastError();
-  	if(error != cudaSuccess)
-  	{
-    	    // print the CUDA error message and exit
-    	    printf("CUDA error: %s\n", cudaGetErrorString(error));
-    	    exit(-1);
-  	}
-	CUDA_CALL( cudaDeviceSynchronize();)
-	
-	FieldT* res;
-	CUDA_CALL (cudaGetSymbolAddress((void**) &res, out<FieldT>));
+    FieldT* fld;
+    CUDA_CALL (cudaGetSymbolAddress((void **)&fld, field<FieldT>));
+    CUDA_CALL( cudaMemcpy(fld, &a[0], sizeof(FieldT) * a.size(), cudaMemcpyHostToDevice);)
+    
+    const FieldT oneElem = 1; //FieldT::one
+    const FieldT zeroElem = 0; //FieldT::zero
+    cudaMemcpyToSymbol(omega<FieldT>, &omg, sizeof(FieldT), 0, cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(one<FieldT>, &oneElem, sizeof(FieldT), 0, cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(zero<FieldT>, &zeroElem, sizeof(FieldT), 0, cudaMemcpyHostToDevice);
 
-        FieldT * result = (FieldT*) malloc (sizeof(FieldT) * a.size());	
-        cudaMemcpy(result, fld, sizeof(FieldT) * a.size(), cudaMemcpyDeviceToHost);
+    int blocks = NUM_THREADS/1024 + 1;
+    int threads = NUM_THREADS > 1024 ? 1024 : NUM_THREADS; 
+    printf("blocks %d, threads %d \n",blocks,threads);
+    cuda_fft<FieldT> <<<blocks,threads>>>();
+        
+    cudaError_t error = cudaGetLastError();
+    if(error != cudaSuccess)
+    {
+        // print the CUDA error message and exit
+        printf("CUDA error: %s\n", cudaGetErrorString(error));
+        exit(-1);
+    }
+    CUDA_CALL( cudaDeviceSynchronize();)
+    
+    FieldT* res;
+    CUDA_CALL (cudaGetSymbolAddress((void**) &res, out<FieldT>));
 
-        a.assign(result, result + a.size());
-        CUDA_CALL( cudaDeviceSynchronize();)
+    FieldT * result = (FieldT*) malloc (sizeof(FieldT) * a.size());    
+    cudaMemcpy(result, fld, sizeof(FieldT) * a.size(), cudaMemcpyDeviceToHost);
+
+    a.assign(result, result + a.size());
+    CUDA_CALL( cudaDeviceSynchronize();)
 }
 
 
@@ -183,7 +188,7 @@ int main(void)
     {
         {
             auto t1 = Clock::now();
-            best_fft<int>(v1, 5678, 1);
+            best_fft<int>(v1, 5678);
             auto t2 = Clock::now();
             printf("Device FFT took %ld \n",
                 std::chrono::duration_cast<
@@ -208,7 +213,7 @@ int main(void)
     }
     printf("####################################\n");
     for(int j = 0; j < size; j++) {
-  //	    printf("%d ", v2[j]);
+  //        printf("%d ", v2[j]);
     }
     assert(v1 == v2);
     printf("\nDONE\n");

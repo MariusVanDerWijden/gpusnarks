@@ -7,9 +7,11 @@ if (OPENMP_FOUND)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
-set(CMAKE_C_COMPILER /usr/bin/gcc-6)
-set(CMAKE_CXX_COMPILER /usr/bin/g++-6)
-string(APPEND CMAKE_CUDA_FLAGS " -gencode arch=compute_50,code=sm_50")
+
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};--ptxas-options=-v;-use_fast_math)
+
+list(APPEND CUDA_NVCC_FLAGS_RELEASE -O3)
+list(APPEND CUDA_NVCC_FLAGS_DEBUG -G)
 
 include_directories( ${MY_SOURCE_DIR})
 
