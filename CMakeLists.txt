@@ -11,7 +11,6 @@ endif()
 set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};--ptxas-options=-v;-use_fast_math)
 
 list(APPEND CUDA_NVCC_FLAGS_RELEASE -O3)
-list(APPEND CUDA_NVCC_FLAGS_DEBUG -G)
 
 include_directories( ${MY_SOURCE_DIR})
 

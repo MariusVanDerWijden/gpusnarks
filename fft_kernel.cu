@@ -87,8 +87,8 @@ template<typename FieldT>  __global__ void cuda_fft()
         for (size_t s = 0; s < NUM_THREADS; ++s)
         {
             // invariant: elt is omega^(j*idx)
-        size_t id = (i + (s<<(log_m - LOG_NUM_THREADS))) % (1u << log_m);
-        a[i] += field<FieldT>[id] * elt;
+            size_t id = (i + (s<<(log_m - LOG_NUM_THREADS))) % (1u << log_m);
+            a[i] += field<FieldT>[id] * elt;
             elt *= omega_step;
         }
         elt *= omega_j;
@@ -133,7 +133,7 @@ template<typename FieldT>  __global__ void cuda_fft()
     for (size_t j = 0; j < 1ul<<(log_m - LOG_NUM_THREADS); ++j)
     {
         if(((j << LOG_NUM_THREADS) + idx) < length)
-        out<FieldT>[(j<<LOG_NUM_THREADS) + idx] = a[j];
+            out<FieldT>[(j<<LOG_NUM_THREADS) + idx] = a[j];
     }
 }
 
@@ -168,7 +168,7 @@ template<typename FieldT> void best_fft
     CUDA_CALL (cudaGetSymbolAddress((void**) &res, out<FieldT>));
 
     FieldT * result = (FieldT*) malloc (sizeof(FieldT) * a.size());    
-    cudaMemcpy(result, fld, sizeof(FieldT) * a.size(), cudaMemcpyDeviceToHost);
+    cudaMemcpy(result, res, sizeof(FieldT) * a.size(), cudaMemcpyDeviceToHost);
 
     a.assign(result, result + a.size());
     CUDA_CALL( cudaDeviceSynchronize();)
@@ -213,7 +213,7 @@ int main(void)
     }
     printf("####################################\n");
     for(int j = 0; j < size; j++) {
-  //        printf("%d ", v2[j]);
+        //printf("%d ", v2[j]);
     }
     assert(v1 == v2);
     printf("\nDONE\n");
