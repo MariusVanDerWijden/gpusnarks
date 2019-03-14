@@ -22,11 +22,7 @@
 #include <assert.h>
 #include <vector>
 #include <iostream>
-#include <chrono>
-#include <omp.h>
-#include "fft_host.h"
-
-typedef std::chrono::high_resolution_clock Clock;
+#include "fft_kernel.h"
 
 #define LOG_NUM_THREADS 11 
 #define NUM_THREADS 1 << LOG_NUM_THREADS
@@ -137,8 +133,8 @@ template<typename FieldT>  __global__ void cuda_fft()
     }
 }
 
-template<typename FieldT> void best_fft
-    (std::vector<FieldT> &a, const FieldT &omg)
+template<typename FieldT> 
+void best_fft (std::vector<FieldT> &a, const FieldT &omg)
 {
     FieldT* fld;
     CUDA_CALL (cudaGetSymbolAddress((void **)&fld, field<FieldT>));
@@ -172,50 +168,4 @@ template<typename FieldT> void best_fft
 
     a.assign(result, result + a.size());
     CUDA_CALL( cudaDeviceSynchronize();)
-}
-
-
-int main(void) 
-{
-    size_t size = CONSTRAINTS;
-    int * array = (int*) malloc(size * sizeof(int));
-    memset(array, 0x1234, size * sizeof(int));
-    std::vector<int> v1(array, array+size);
-    std::vector<int> v2 = v1;
-
-    omp_set_num_threads( 8 );
-
-    {
-        {
-            auto t1 = Clock::now();
-            best_fft<int>(v1, 5678);
-            auto t2 = Clock::now();
-            printf("Device FFT took %ld \n",
-                std::chrono::duration_cast<
-                std::chrono::milliseconds>(t2 - t1).count());
-        }
-        
-        {
-            auto t1 = Clock::now();
-            _basic_parallel_radix2_FFT_inner<int> (v2, 5678, LOG_NUM_THREADS, 1);
-            auto t2 = Clock::now();
-            printf("Host FFT took %ld \n",
-                std::chrono::duration_cast<
-                std::chrono::milliseconds>(t2 - t1).count());
-        }
-        
-        //_basic_parallel_radix2_FFT_inner<int> (v1, 5678, 5, 1);
-    }
-    
-
-    for(int j = 0; j < size; j++) {
-        //printf("%d ", v1[j]);
-    }
-    printf("####################################\n");
-    for(int j = 0; j < size; j++) {
-        //printf("%d ", v2[j]);
-    }
-    assert(v1 == v2);
-    printf("\nDONE\n");
-    return 0;
 }

@@ -8,9 +8,7 @@ It speeds up the Fast Fourier Transformation on Finite Elements by more than **4
 ```
 mkdir build 
 cd build
-export CC=/usr/bin/gcc-6
-export CXX=/usr/bin/g++-6
-cmake ..
+cmake .. -DCMAKE_C_COMPILER=/usr/bin/gcc-6
 make
 ```
 
