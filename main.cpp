@@ -6,18 +6,13 @@
 #include <omp.h>
 #include <string.h>
 #include "fft_host.h"
-#include <cuda/fft_kernel.h>
-
-#define LOG_NUM_THREADS 11 
-#define NUM_THREADS 1 << LOG_NUM_THREADS
-#define LOG_CONSTRAINTS 22 
-#define CONSTRAINTS 1 << LOG_CONSTRAINTS
+#include "fft_kernel.h"
 
 typedef std::chrono::high_resolution_clock Clock;
 
 int main(void) 
 {
-    size_t size = CONSTRAINTS;
+    size_t size = 12;
     int * array = (int*) malloc(size * sizeof(int));
     memset(array, 0x1234, size * sizeof(int));
     std::vector<int> v1(array, array+size);
@@ -37,7 +32,7 @@ int main(void)
         
         {
             auto t1 = Clock::now();
-            _basic_parallel_radix2_FFT_inner<int> (v2, 5678, LOG_NUM_THREADS, 1);
+            _basic_parallel_radix2_FFT_inner<int> (v2, 5678, 12, 1);
             auto t2 = Clock::now();
             printf("Host FFT took %ld \n",
                 std::chrono::duration_cast<
