@@ -169,3 +169,5 @@ void best_fft (std::vector<FieldT> &a, const FieldT &omg)
     a.assign(result, result + a.size());
     CUDA_CALL( cudaDeviceSynchronize();)
 }
+
+template void best_fft(std::vector<int> &a, const int &omg);

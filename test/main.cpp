@@ -6,7 +6,7 @@
 #include <omp.h>
 #include <string.h>
 #include "fft_host.h"
-#include "fft_kernel.h"
+#include <cuda/fft_kernel.h>
 
 typedef std::chrono::high_resolution_clock Clock;
 
