@@ -170,4 +170,5 @@ void best_fft (std::vector<FieldT> &a, const FieldT &omg)
     CUDA_CALL( cudaDeviceSynchronize();)
 }
 
+//List with all templates that should be generated
 template void best_fft(std::vector<int> &a, const int &omg);
