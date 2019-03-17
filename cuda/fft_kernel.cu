@@ -71,10 +71,12 @@ template<typename FieldT>  __global__ void cuda_fft()
         return;
     FieldT a [block_length];
     memset(a, block_length,  zero<FieldT>); 
-    //TODO change to zero element
+
     //TODO algorithm is non-deterministic because of padding
 
+    //pow(omega<FieldT>, idx)
     FieldT omega_j = omega<FieldT>^idx;
+    //pow(omega<FieldT>, idx << (log_m - LOG_NUM_THREADS))
     FieldT omega_step = omega<FieldT>^(idx<<(log_m - LOG_NUM_THREADS));
     
     FieldT elt = one<FieldT>;
@@ -84,14 +86,20 @@ template<typename FieldT>  __global__ void cuda_fft()
         {
             // invariant: elt is omega^(j*idx)
             size_t id = (i + (s<<(log_m - LOG_NUM_THREADS))) % (1u << log_m);
+            //add(a[i], mul(field<FieldT>[id], elt));
             a[i] += field<FieldT>[id] * elt;
+            //add(elt, mul(elt, omega_step))
             elt *= omega_step;
         }
+        //add(elt, mul(elt, omega_j))
         elt *= omega_j;
     }
 
-    FieldT omega_num_cpus = omega<FieldT> ^ NUM_THREADS;
+    //FieldT omega_num_cpus = omega<FieldT>;
+    //pow(omega_num_cpus, NUM_THREADS)
+    const FieldT omega_num_cpus = omega<FieldT> ^ NUM_THREADS;
     
+    //Do not remove log2f(n), otherwise register overflow
     size_t n = block_length, logn = log2f(n);
     assert (n == (1u << logn));
 
@@ -111,6 +119,8 @@ template<typename FieldT>  __global__ void cuda_fft()
     for (size_t s = 1; s <= logn; ++s)
     {
         // w_m is 2^s-th root of unity now
+        //FieldT w_m = omega_num_cpus
+        //pow(w_m, n/2*m);
         const FieldT w_m = omega_num_cpus^(n/(2*m));
 
         for (size_t k = 0; k < n; k += 2*m)
@@ -118,9 +128,16 @@ template<typename FieldT>  __global__ void cuda_fft()
             FieldT w = one<FieldT>;
             for (size_t j = 0; j < m; ++j)
             {
+                //FieldT t = w;
+                //mul(t, a[k+j+m]);
                 const FieldT t = w * a[k+j+m];
+                //FieldT tmp = a[k+j];
+                //sub(tmp, t);
+                //a[k+j+m] = tmp;
                 a[k+j+m] = a[k+j] - t;
+                //add(a[k+j], t);
                 a[k+j] += t;
+                //mul(w, w_m);
                 w *= w_m;
             }
         }
