@@ -18,34 +18,38 @@
 
 namespace fields{
 
-//TODO second parameter should be big integer
-template<size_t n, const size_t & mod>
+typedef size 256 / sizeof(uint32_t);
+
 class Field {
 
 	public:
-		//TODO should be big datatype
-		size_t intermediate_representation;
+		//Intermediate representation
+		uint32_t im_rep [size];
+        //Modulo
+        static uint32_t mod [size];
+        //N
+        static uint32_t n [size];
 		//Returns zero element
     	static Field<n, modulus> zero();
     	//Returns one element
     	static Field<n, modulus> one();
     	//Returns true iff this element is zero
-    	static bool is_zero(const Field<n, mod> & fld);
+    	static bool is_zero(const Field & fld);
     	//Squares this element
-    	static void square(Field<n, mod> & fld);
+    	static void square(Field & fld);
     	//Doubles this element
-    	static void double(Field<n, mod> & fld);
+    	static void double(Field & fld);
    	 	//Negates this element
-    	static void negate(Field<n, mod> & fld);
+    	static void negate(Field & fld);
     	//Adds two elements
-    	static void add(Field<n, mod> & fld1, const Field<n, mod> & fld2);
+    	static void add(Field & fld1, const Field & fld2);
     	//Subtract element two from element one
-    	static void substract(Field<n, mod> & fld1, const Field<n, mod> & fld2);
+    	static void substract(Field & fld1, const Field & fld2);
     	//Multiply two elements
-    	static void mul(Field<n, mod> & fld1, const Field<n, mod> & fld2);
+    	static void mul(Field & fld1, const Field & fld2);
     	//Computes the multiplicative inverse of this element, if nonzero.
-    	static void mul_inv(Field<n, mod> & fld1);
+    	static void mul_inv(Field & fld1);
     	//Exponentiates this element 
-    	static void pow(Field<n, mod> & fld1, const size_t pow);
+    	static void pow(Field & fld1, const size_t pow);
 };
 }

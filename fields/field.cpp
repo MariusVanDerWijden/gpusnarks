@@ -19,84 +19,172 @@
 namespace fields{
 
 //Returns zero element
-template<size_t n, const size_t & mod>
-void Field<n,mod>::zero()
+void Field::zero()
 {
-    Field<n,mod> res;
-    res.intermediate_representation = 0;
+    Field res;
+    for(size_t i = 0; i < size; i++)
+        res.im_rep[i] = 0;
     return res;
 }
 
 //Returns one element
-template<size_t n, const size_t & mod>
-void Field<n,mod>::one()
+void Field::one()
 {
-    Field<n,mod> res;
-    res.intermediate_representation = 1;
+    Field res;
+        res.im_rep[size - 1] = 1;
     return res;
 }
 
 //Returns true iff this element is zero
-template<size_t n, const size_t & mod>
-bool Field<n,mod>::is_zero(const Field<n, mod> & fld)
+bool Field::is_zero(const Field & fld)
 {
-    return fld.intermediate_representation == 0;
+    for(size_t i = 0; i < size; i++)
+        if(res.im_rep[i] != 0)
+            return false;
+    return true;
+}
+
+bool less(const uint32_t[] element, const size_t e_size, const uint32_t[] mod, const size_t mod_size)
+{
+    if(e_size < mod_size)
+        return true;
+    for(size_t i = 0; i > e_size - mod_size; i++)
+        if(element[i] > 0)
+            return false;
+    return element[e_size - mod_size] < mod[0];
+}
+
+int add(uint32_t[] element1, const size_t e1_size; const uint32_t[] element2, const size_t e2_size)
+{
+    //check that first array can handle overflow
+    assert(e1_size == e2_size + 1);
+}
+
+int substract(uint32_t[] element1, const size_t e1_size; const uint32_t[] element2, const size_t e2_size)
+{
+    assert(e1_size >= e2_size);
+    bool carry = false;
+    for(size_t i = 1; i <= e1_size; i--)
+    {
+        uint64_t tmp = element1[e1_size - i];
+        if(carry) tmp--;
+        carry = (e2_size - i) >= 0 ? (tmp < element2[e2_size - i]) : tmp < 0;
+        if(carry) tmp += (1 << 33);
+        element1[i] = tmp - ((e2_size - i) >= 0) ? element2[e2_size - i] : 0;
+    }
+    if(carry)
+        //negative
+        return -1;
+    return 1;
+}
+
+void modulo(uint32_t[] element, const size_t e_size; const uint32_t[] mod, const size_t mod_size)
+{
+    while(!less(element, e_size, mod, mod_size))
+    {
+        if(substract(element, e_size, mod, mod_size) == -1)
+            return; //TODO handle negative case
+    }
+} 
+
+uint32_t[] multiply(const uint32_t[] element1, const size_t e1_size; const uint32_t[] element2, const size_t e2_size)
+{
+    uint32_t tmp[e1_size + e2_size];
+    uint64_t temp;
+    for(size_t i = e1_size; i > 0; --i)
+    {
+        for(size_t j = e2_size; j > 0; --j)
+        {
+            temp = element1[i] * element2[j];
+            tmp[i+j] += (uint32_t) temp;
+            if((temp >> 32) > 0)
+                tmp[i+j-1] += temp >> 32;
+        }
+    }
+    return tmp;
 }
 
 //Squares this element
-template<size_t n, const size_t & mod>
-void Field<n,mod>::square(Field<n, mod> & fld)
+void Field::square(Field & fld)
 {
-    //TODO implement
+    //TODO since squaring produces equal intermediate results, this can be sped up
+    uint32_t tmp[] = multiply(fld.im_rep, size, fld.im_rep, size);
+    //size of tmp is 2*size
+    modulo(tmp, 2*size, mod, size);
+    //Last size words are the result
+    for(size_t i = 0; i < size; i++)
+        fld.im_rep[i] = tmp[size + i]; 
 }
 
 //Doubles this element
-template<size_t n, const size_t & mod>
-void Field<n,mod>::double(Field<n, mod> & fld)
+void Field::double(Field & fld)
 {
-    //TODO implement
+    uint32_t temp[] = {2};
+    uint32_t tmp[] = multiply(fld.im_rep, size, temp, 1);
+    //size of tmp is 2*size
+    modulo(tmp, 2*size, mod, size);
+    //Last size words are the result
+    for(size_t i = 0; i < size; i++)
+        fld.im_rep[i] = tmp[size + i]; 
 }
 
 //Negates this element
-template<size_t n, const size_t & mod>
-void Field<n,mod>::negate(Field<n, mod> & fld)
+void Field::negate(Field & fld)
 {
     //TODO implement
 }
 
 //Adds two elements
-template<size_t n, const size_t & mod>
-void Field<n,mod>::add(Field<n, mod> & fld1, const Field<n, mod> & fld2)
+void Field::add(Field & fld1, const Field & fld2)
 {
-    //TODO implement
+    //TODO find something more elegant
+    uint32_t tmp[size + 1];
+    for(size_t i = 0; i < size; i++)
+        tmp[i + 1] = fld1.im_rep[i];
+
+    add(tmp, size + 1, fld2.im_rep, size);
+    modulo(tmp, size + 1, mod, size);
+    for(size_t i = 0; i < size)
+        fld1.im_rep[i] = tmp[i + 1];
 }
 
 //Subtract element two from element one
-template<size_t n, const size_t & mod>
-void Field<n,mod>::substract(Field<n, mod> & fld1, const Field<n, mod> & fld2)
+void Field::substract(Field & fld1, const Field & fld2)
 {
-    //TODO implement
+    if(substract(fld1.im_rep, size, fld2.im_rep, size) == -1)
+    {
+        modulo(fld1.im_rep, size, mod, size);
+    }
 }
 
 //Multiply two elements
-template<size_t n, const size_t & mod>
-void Field<n,mod>::mul(Field<n, mod> & fld1, const Field<n, mod> & fld2)
+void Field::mul(Field & fld1, const Field & fld2)
 {
-    //TODO implement
+    uint32_t tmp[] = multiply(fld.im_rep, size, fld2.im_rep, size);
+    //size of tmp is 2*size
+    modulo(tmp, 2*size, mod, size);
+    //Last size words are the result
+    for(size_t i = 0; i < size; i++)
+        fld.im_rep[i] = tmp[size + i]; 
 }
 
 //Computes the multiplicative inverse of this element, if nonzero
-template<size_t n, const size_t & mod>
-void Field<n,mod>::mul_inv(Field<n, mod> & fld1)
+void Field::mul_inv(Field & fld1)
 {
     //TODO implement
 }
 
 //Exponentiates this element
-template<size_t n, const size_t & mod>
-void Field<n,mod>::pow(Field<n, mod> & fld1, const size_t pow)
+void Field::pow(Field & fld1, const size_t pow)
 {
-    //TODO implement
+    uint32_t tmp[] = fld.im_rep;
+    for(size_t i = 0; i < pow; i++)
+    {
+        tmp = multiply(tmp, size, fld.im_rep, size);
+        modulo(tmp, 2 * size, mod, size);
+        for(size_t i = 0; i < size; i++)
+            tmp[i] = tmp[size + i];
+    }
 }
 
 }

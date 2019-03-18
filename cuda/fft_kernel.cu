@@ -141,7 +141,7 @@ template<typename FieldT>  __global__ void cuda_fft()
                 w *= w_m;
             }
         }
-        m *= 2;
+        m = m << 1;
     }
     for (size_t j = 0; j < 1ul<<(log_m - LOG_NUM_THREADS); ++j)
     {
