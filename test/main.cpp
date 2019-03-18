@@ -7,15 +7,16 @@
 #include <string.h>
 #include "fft_host.h"
 #include <cuda/fft_kernel.h>
+#include <fields/field.h>
 
 typedef std::chrono::high_resolution_clock Clock;
 
 int main(void) 
 {
-    size_t size = 12;
-    int * array = (int*) malloc(size * sizeof(int));
-    memset(array, 0x1234, size * sizeof(int));
-    std::vector<int> v1(array, array+size);
+    size_t _size = 12;
+    int * array = (int*) malloc(_size * sizeof(int));
+    memset(array, 0x1234, _size * sizeof(int));
+    std::vector<int> v1(array, array + _size);
     std::vector<int> v2 = v1;
 
     omp_set_num_threads( 8 );
@@ -43,11 +44,11 @@ int main(void)
     }
     
 
-    for(int j = 0; j < size; j++) {
+    for(int j = 0; j < _size; j++) {
         //printf("%d ", v1[j]);
     }
     printf("####################################\n");
-    for(int j = 0; j < size; j++) {
+    for(int j = 0; j < _size; j++) {
         //printf("%d ", v2[j]);
     }
     assert(v1 == v2);

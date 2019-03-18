@@ -15,10 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *****************************************************************************/
+#include <cstdint>
+
+#define size (256 / 32)
 
 namespace fields{
 
-typedef size 256 / sizeof(uint32_t);
+using size_t = decltype(sizeof 1ll);
 
 class Field {
 
@@ -30,15 +33,15 @@ class Field {
         //N
         static uint32_t n [size];
 		//Returns zero element
-    	static Field<n, modulus> zero();
+    	static Field zero();
     	//Returns one element
-    	static Field<n, modulus> one();
+    	static Field one();
     	//Returns true iff this element is zero
     	static bool is_zero(const Field & fld);
     	//Squares this element
     	static void square(Field & fld);
     	//Doubles this element
-    	static void double(Field & fld);
+    	//static void double(Field & fld);
    	 	//Negates this element
     	static void negate(Field & fld);
     	//Adds two elements
@@ -51,5 +54,14 @@ class Field {
     	static void mul_inv(Field & fld1);
     	//Exponentiates this element 
     	static void pow(Field & fld1, const size_t pow);
+    private:
+        static bool less(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size);
+        static int add(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size);
+        static int substract(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size);
+        static void modulo(uint32_t* element, const size_t e_size, const uint32_t* _mod, const size_t mod_size);
+        static uint32_t* multiply(const uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size);
 };
+
+uint32_t Field::mod [] = {0};
+
 }
