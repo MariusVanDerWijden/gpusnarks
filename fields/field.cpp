@@ -146,7 +146,7 @@ void Field::add(Field & fld1, const Field & fld2)
         tmp[i + 1] = fld1.im_rep[i];
 
     add(tmp, size + 1, fld2.im_rep, size);
-    modulo(tmp, size + 1, mod, size);
+    modulo(tmp, size + 1, Field::mod, size);
     for(size_t i = 0; i < size; i++)
         fld1.im_rep[i] = tmp[i + 1];
 }
@@ -156,7 +156,7 @@ void Field::substract(Field & fld1, const Field & fld2)
 {
     if(substract(fld1.im_rep, size, fld2.im_rep, size) == -1)
     {
-        modulo(fld1.im_rep, size, mod, size);
+        modulo(fld1.im_rep, size, Field::mod, size);
     }
 }
 
@@ -165,7 +165,7 @@ void Field::mul(Field & fld1, const Field & fld2)
 {
     uint32_t * tmp = multiply(fld1.im_rep, size, fld2.im_rep, size);
     //size of tmp is 2*size
-    modulo(tmp, 2*size, mod, size);
+    modulo(tmp, 2*size, Field::mod, size);
     //Last size words are the result
     for(size_t i = 0; i < size; i++)
         fld1.im_rep[i] = tmp[size + i]; 
@@ -184,7 +184,7 @@ void Field::pow(Field & fld1, const size_t pow)
     for(size_t i = 0; i < pow; i++)
     {
         tmp = multiply(tmp, size, fld1.im_rep, size);
-        modulo(tmp, 2 * size, mod, size);
+        modulo(tmp, 2 * size, Field::mod, size);
         for(size_t i = 0; i < size; i++)
             tmp[i] = tmp[size + i];
     }
