@@ -71,12 +71,13 @@ template<typename FieldT>  __global__ void cuda_fft()
     if(startidx > length)
         return;
     FieldT a [block_length];
-    memset(a, block_length,  zero<FieldT>); 
+    //FieldT::zero()
+    memset(a, block_length,  0); 
 
     //TODO algorithm is non-deterministic because of padding
 
     FieldT omega_j = omega<FieldT>;
-    FieldT::pow(omega_j, size_idx);
+    FieldT::pow(omega_j, idx);
     FieldT omega_step = omega<FieldT>;
     FieldT::pow(omega_step, idx << (log_m - LOG_NUM_THREADS));
     
@@ -157,8 +158,9 @@ template<typename FieldT>
 void best_fft (std::vector<FieldT> &a, const FieldT &omg)
 {
     FieldT* fld;
+    size_t _size = a.size();
     CUDA_CALL (cudaGetSymbolAddress((void **)&fld, field<FieldT>));
-    CUDA_CALL( cudaMemcpy(fld, &a[0], sizeof(FieldT) * a.size(), cudaMemcpyHostToDevice));
+    CUDA_CALL( cudaMemcpy(&fld, &a[0], sizeof(FieldT) * size, cudaMemcpyHostToDevice));
     
     const FieldT oneElem = FieldT::one();
     const FieldT zeroElem = FieldT::zero();
