@@ -23,7 +23,7 @@
 #include <vector>
 #include <iostream>
 #include "fft_kernel.h"
-#include <fields/field.h>
+#include "field.h"
 
 #define LOG_NUM_THREADS 11 
 #define NUM_THREADS 1 << LOG_NUM_THREADS
@@ -155,12 +155,11 @@ template<typename FieldT>  __global__ void cuda_fft()
 }
 
 template<typename FieldT> 
-void best_fft (std::vector<FieldT> &a, const FieldT &omg)
+void best_fft (FieldT *a, size_t _size, const FieldT &omg)
 {
     FieldT* fld;
-    size_t _size = a.size();
     CUDA_CALL (cudaGetSymbolAddress((void **)&fld, field<FieldT>));
-    CUDA_CALL( cudaMemcpy(&fld, &a[0], sizeof(FieldT) * size, cudaMemcpyHostToDevice));
+    CUDA_CALL( cudaMemcpy(&fld, &a[0], sizeof(FieldT) * _size, cudaMemcpyHostToDevice));
     
     const FieldT oneElem = FieldT::one();
     const FieldT zeroElem = FieldT::zero();
@@ -185,13 +184,13 @@ void best_fft (std::vector<FieldT> &a, const FieldT &omg)
     FieldT* res;
     CUDA_CALL (cudaGetSymbolAddress((void**) &res, out<FieldT>));
 
-    FieldT * result = (FieldT*) malloc (sizeof(FieldT) * a.size());    
-    cudaMemcpy(result, res, sizeof(FieldT) * a.size(), cudaMemcpyDeviceToHost);
+    FieldT * result = (FieldT*) malloc (sizeof(FieldT) * _size);    
+    cudaMemcpy(result, res, sizeof(FieldT) * _size, cudaMemcpyDeviceToHost);
 
-    a.assign(result, result + a.size());
+    std::copy(result, result + _size, a);
     CUDA_CALL( cudaDeviceSynchronize();)
 }
 
 //List with all templates that should be generated
 //template void best_fft(std::vector<int> &a, const int &omg);
-template void best_fft(std::vector<fields::Field> &v, const fields::Field &omg);
+template void best_fft(fields::Field *v, size_t _size, const fields::Field &omg);

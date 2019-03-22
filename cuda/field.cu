@@ -60,6 +60,8 @@ int Field::add(uint32_t* element1, const size_t e1_size, const uint32_t* element
 {
     //check that first array can handle overflow
     assert(e1_size == e2_size + 1);
+    //TODO implement
+    return -1;
 }
 
 int Field::substract(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
@@ -91,7 +93,7 @@ void Field::modulo(uint32_t* element, const size_t e_size, const uint32_t* _mod,
 
 uint32_t* Field::multiply(const uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
 {
-    uint32_t tmp[e1_size + e2_size];
+    uint32_t* tmp = (uint32_t*) malloc ((e1_size + e2_size) * sizeof(uint32_t));
     uint64_t temp;
     for(size_t i = e1_size; i > 0; --i)
     {
@@ -112,7 +114,7 @@ void Field::square(Field & fld)
     //TODO since squaring produces equal intermediate results, this can be sped up
     uint32_t * tmp  = multiply(fld.im_rep, size, fld.im_rep, size);
     //size of tmp is 2*size
-    modulo(tmp, 2*size, Field::mod, size);
+    modulo(tmp, 2*size, _mod, size);
     //Last size words are the result
     for(size_t i = 0; i < size; i++)
         fld.im_rep[i] = tmp[size + i]; 
@@ -138,6 +140,7 @@ void Field::negate(Field & fld)
 }
 
 //Adds two elements
+__host__ __device__
 void Field::add(Field & fld1, const Field & fld2)
 {
     //TODO find something more elegant
@@ -146,26 +149,28 @@ void Field::add(Field & fld1, const Field & fld2)
         tmp[i + 1] = fld1.im_rep[i];
 
     add(tmp, size + 1, fld2.im_rep, size);
-    modulo(tmp, size + 1, Field::mod, size);
+    modulo(tmp, size + 1, _mod, size);
     for(size_t i = 0; i < size; i++)
         fld1.im_rep[i] = tmp[i + 1];
 }
 
 //Subtract element two from element one
+__host__ __device__
 void Field::substract(Field & fld1, const Field & fld2)
 {
     if(substract(fld1.im_rep, size, fld2.im_rep, size) == -1)
     {
-        modulo(fld1.im_rep, size, Field::mod, size);
+        modulo(fld1.im_rep, size, _mod, size);
     }
 }
 
 //Multiply two elements
+__host__ __device__
 void Field::mul(Field & fld1, const Field & fld2)
 {
     uint32_t * tmp = multiply(fld1.im_rep, size, fld2.im_rep, size);
     //size of tmp is 2*size
-    modulo(tmp, 2*size, Field::mod, size);
+    modulo(tmp, 2*size, _mod, size);
     //Last size words are the result
     for(size_t i = 0; i < size; i++)
         fld1.im_rep[i] = tmp[size + i]; 
@@ -178,13 +183,14 @@ void Field::mul_inv(Field & fld1)
 }
 
 //Exponentiates this element
+__host__ __device__
 void Field::pow(Field & fld1, const size_t pow)
 {
     uint32_t * tmp = fld1.im_rep;
     for(size_t i = 0; i < pow; i++)
     {
         tmp = multiply(tmp, size, fld1.im_rep, size);
-        modulo(tmp, 2 * size, Field::mod, size);
+        modulo(tmp, 2 * size, _mod, size);
         for(size_t i = 0; i < size; i++)
             tmp[i] = tmp[size + i];
     }
