@@ -71,15 +71,15 @@ template<typename FieldT>  __global__ void cuda_fft()
     if(startidx > length)
         return;
     FieldT a [block_length];
-    //FieldT::zero()
+    //zero()
     memset(a, block_length,  0); 
 
     //TODO algorithm is non-deterministic because of padding
 
     FieldT omega_j = omega<FieldT>;
-    FieldT::pow(omega_j, idx);
+    pow(omega_j, idx);
     FieldT omega_step = omega<FieldT>;
-    FieldT::pow(omega_step, idx << (log_m - LOG_NUM_THREADS));
+    pow(omega_step, idx << (log_m - LOG_NUM_THREADS));
     
     FieldT elt = one<FieldT>;
     for (size_t i = 0; i < 1ul<<(log_m - LOG_NUM_THREADS); ++i)
@@ -89,18 +89,18 @@ template<typename FieldT>  __global__ void cuda_fft()
             // invariant: elt is omega^(j*idx)
             size_t id = (i + (s<<(log_m - LOG_NUM_THREADS))) % (1u << log_m);
             FieldT tmp = field<FieldT>[id];
-            FieldT::mul(tmp, elt);
-            FieldT::add(a[i], tmp);
+            mul(tmp, elt);
+            add(a[i], tmp);
             //a[i] += field<FieldT>[id] * elt;
-            FieldT::mul(elt, omega_step);
+            mul(elt, omega_step);
             //elt *= omega_step;
         }
-        FieldT::mul(elt, omega_j);
+        mul(elt, omega_j);
         //elt *= omega_j;
     }
 
     FieldT omega_num_cpus = omega<FieldT>;
-    FieldT::pow(omega_num_cpus, NUM_THREADS);
+    pow(omega_num_cpus, NUM_THREADS);
     //const FieldT omega_num_cpus = omega<FieldT> ^ NUM_THREADS;
     
     //Do not remove log2f(n), otherwise register overflow
@@ -124,7 +124,7 @@ template<typename FieldT>  __global__ void cuda_fft()
     {
         // w_m is 2^s-th root of unity now
         FieldT w_m = omega_num_cpus;
-        FieldT::pow(w_m, n/2*m);
+        pow(w_m, n/2*m);
         //const FieldT w_m = omega_num_cpus^(n/(2*m));
 
         for (size_t k = 0; k < n; k += 2*m)
@@ -133,15 +133,15 @@ template<typename FieldT>  __global__ void cuda_fft()
             for (size_t j = 0; j < m; ++j)
             {
                 FieldT t = w;
-                FieldT::mul(t, a[k+j+m]);
+                mul(t, a[k+j+m]);
                 //const FieldT t = w * a[k+j+m];
                 FieldT tmp = a[k+j];
-                FieldT::substract(tmp, t);
+                substract(tmp, t);
                 a[k+j+m] = tmp;
                 //a[k+j+m] = a[k+j] - t;
-                FieldT::add(a[k+j], t);
+                add(a[k+j], t);
                 //a[k+j] += t;
-                FieldT::mul(w, w_m);
+                mul(w, w_m);
                 //w *= w_m;
             }
         }

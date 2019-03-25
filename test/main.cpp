@@ -7,7 +7,8 @@
 #include <string.h>
 #include "fft_host.h"
 #include <cuda/fft_kernel.h>
-#include <fields/field.h>
+#include <cuda/field.h>
+//#include <fields/dummy_field.h>
 
 typedef std::chrono::high_resolution_clock Clock;
 
@@ -16,15 +17,16 @@ int main(void)
     size_t _size = 12;
     int * array = (int*) malloc(_size * sizeof(int));
     memset(array, 0x1234, _size * sizeof(int));
-    std::vector<int> v1(array, array + _size);
-    std::vector<int> v2 = v1;
+    std::vector<fields::Field> v1(array, array + _size);
+    std::vector<fields::Field> v2 = v1;
 
     omp_set_num_threads( 8 );
 
     {
         {
             auto t1 = Clock::now();
-            best_fft<int>(v1, 5678);
+            //void best_fft (FieldT *a, size_t _size, const FieldT &omg)
+            best_fft<fields::Field>(&v1[0], v1.size(), fields::Field::to_field(123));
             auto t2 = Clock::now();
             printf("Device FFT took %ld \n",
                 std::chrono::duration_cast<
@@ -33,7 +35,7 @@ int main(void)
         
         {
             auto t1 = Clock::now();
-            _basic_parallel_radix2_FFT_inner<int> (v2, 5678, 12, 1);
+            _basic_parallel_radix2_FFT_inner<fields::Field> (v2, fields::Field::to_field(123), 12, fields::Field::one());
             auto t2 = Clock::now();
             printf("Host FFT took %ld \n",
                 std::chrono::duration_cast<

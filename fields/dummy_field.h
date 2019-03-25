@@ -17,9 +17,7 @@
  *****************************************************************************/
 #include <cstdint>
 
-#define size (256 / 32)
-
-namespace fields{
+namespace dummy_fields{
 
 using size_t = decltype(sizeof 1ll);
 
@@ -55,7 +53,5 @@ class Field {
     	//Exponentiates this element 
     	static void pow(Field & fld1, const size_t pow);
 };
-
-uint32_t Field::mod [] = {0};
 
 }
