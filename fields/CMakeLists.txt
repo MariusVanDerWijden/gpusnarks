@@ -3,4 +3,4 @@ project(GPUsnarks CXX CUDA)
 
 include_directories( ${MY_SOURCE_DIR}/fields)
 
-add_library(fields SHARED dummy_field.cpp dummy_field.h)
+add_library(fields SHARED dummy_field.cpp dummy_field.h field.h)

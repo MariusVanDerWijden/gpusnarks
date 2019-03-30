@@ -16,12 +16,16 @@
  * limitations under the License.
  *****************************************************************************/
 
+#ifndef FIELD_HEADER
+#define FIELD_HEADER
 #include <cstdint>
 
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include "device_field.h"
 
-#define size (256 / 32)
+#define SIZE (256 / 32)
+
 #define cu_fun __host__ __device__ 
 
 namespace fields{
@@ -29,16 +33,16 @@ namespace fields{
 using size_t = decltype(sizeof 1ll);
 
 __constant__
-uint32_t _mod [size];
+uint32_t _mod [SIZE];
 
 struct Field {
 	//Intermediate representation
-	uint32_t im_rep [size];
+	uint32_t im_rep [SIZE];
     //Returns zero element
     cu_fun static Field zero()
     {
         Field res;
-        for(size_t i = 0; i < size; i++)
+        for(size_t i = 0; i < SIZE; i++)
             res.im_rep[i] = 0;
         return res;
     }
@@ -47,24 +51,30 @@ struct Field {
     cu_fun static Field one()
     {
         Field res;
-            res.im_rep[size - 1] = 1;
+            res.im_rep[SIZE - 1] = 1;
         return res;
     }
-
-    cu_fun static Field to_field(uint32_t value)
+    //Default constructor
+    Field() = default;
+    //Construct from value
+    cu_fun Field(uint32_t value)
     {
-        Field res;
-            res.im_rep[size - 1] = value;
-        return res;
-    } 
+        im_rep[SIZE - 1] = value;
+    }
 };
 
-
+cu_fun bool operator==(const Field& lhs, const Field& rhs)
+{
+    for(size_t i = 0; i < SIZE; i++)
+        if(lhs.im_rep[i] != rhs.im_rep[i])
+            return false;
+    return true;
+}
 
 //Returns true iff this element is zero
 cu_fun bool is_zero(const Field & fld)
 {
-    for(size_t i = 0; i < size; i++)
+    for(size_t i = 0; i < SIZE; i++)
         if(fld.im_rep[i] != 0)
             return false;
     return true;
@@ -115,7 +125,7 @@ cu_fun void modulo(uint32_t* element, const size_t e_size, const uint32_t* _mod,
     }
 } 
 
-cu_fun cu_fun uint32_t* multiply(const uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
+cu_fun uint32_t* multiply(const uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
 {
     uint32_t* tmp = (uint32_t*) malloc ((e1_size + e2_size) * sizeof(uint32_t));
     uint64_t temp;
@@ -136,12 +146,12 @@ cu_fun cu_fun uint32_t* multiply(const uint32_t* element1, const size_t e1_size,
 cu_fun void square(Field & fld)
 {
     //TODO since squaring produces equal intermediate results, this can be sped up
-    uint32_t * tmp  = multiply(fld.im_rep, size, fld.im_rep, size);
+    uint32_t * tmp  = multiply(fld.im_rep, SIZE, fld.im_rep, SIZE);
     //size of tmp is 2*size
-    modulo(tmp, 2*size, _mod, size);
+    modulo(tmp, 2*SIZE, _mod, SIZE);
     //Last size words are the result
-    for(size_t i = 0; i < size; i++)
-        fld.im_rep[i] = tmp[size + i]; 
+    for(size_t i = 0; i < SIZE; i++)
+        fld.im_rep[i] = tmp[SIZE + i]; 
 }
 
 /*
@@ -167,34 +177,34 @@ cu_fun void negate(Field & fld)
 cu_fun void add(Field & fld1, const Field & fld2)
 {
     //TODO find something more elegant
-    uint32_t tmp[size + 1];
-    for(size_t i = 0; i < size; i++)
+    uint32_t tmp[SIZE + 1];
+    for(size_t i = 0; i < SIZE; i++)
         tmp[i + 1] = fld1.im_rep[i];
 
-    add(tmp, size + 1, fld2.im_rep, size);
-    modulo(tmp, size + 1, _mod, size);
-    for(size_t i = 0; i < size; i++)
+    add(tmp, SIZE + 1, fld2.im_rep, SIZE);
+    modulo(tmp, SIZE + 1, _mod, SIZE);
+    for(size_t i = 0; i < SIZE; i++)
         fld1.im_rep[i] = tmp[i + 1];
 }
 
 //Subtract element two from element one
 cu_fun void substract(Field & fld1, const Field & fld2)
 {
-    if(substract(fld1.im_rep, size, fld2.im_rep, size) == -1)
+    if(substract(fld1.im_rep, SIZE, fld2.im_rep, SIZE) == -1)
     {
-        modulo(fld1.im_rep, size, _mod, size);
+        modulo(fld1.im_rep, SIZE, _mod, SIZE);
     }
 }
 
 //Multiply two elements
 cu_fun void mul(Field & fld1, const Field & fld2)
 {
-    uint32_t * tmp = multiply(fld1.im_rep, size, fld2.im_rep, size);
+    uint32_t * tmp = multiply(fld1.im_rep, SIZE, fld2.im_rep, SIZE);
     //size of tmp is 2*size
-    modulo(tmp, 2*size, _mod, size);
+    modulo(tmp, 2*SIZE, _mod, SIZE);
     //Last size words are the result
-    for(size_t i = 0; i < size; i++)
-        fld1.im_rep[i] = tmp[size + i]; 
+    for(size_t i = 0; i < SIZE; i++)
+        fld1.im_rep[i] = tmp[SIZE + i]; 
 }
 
 //Computes the multiplicative inverse of this element, if nonzero
@@ -209,12 +219,13 @@ cu_fun void pow(Field & fld1, const size_t pow)
     uint32_t * tmp = fld1.im_rep;
     for(size_t i = 0; i < pow; i++)
     {
-        tmp = multiply(tmp, size, fld1.im_rep, size);
-        modulo(tmp, 2 * size, _mod, size);
-        for(size_t i = 0; i < size; i++)
-            tmp[i] = tmp[size + i];
+        tmp = multiply(tmp, SIZE, fld1.im_rep, SIZE);
+        modulo(tmp, 2 * SIZE, _mod, SIZE);
+        for(size_t i = 0; i < SIZE; i++)
+            tmp[i] = tmp[SIZE + i];
     }
 }
 
 
 }
+#endif

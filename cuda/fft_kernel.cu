@@ -23,7 +23,7 @@
 #include <vector>
 #include <iostream>
 #include "fft_kernel.h"
-#include "field.h"
+#include "device_field.h"
 
 #define LOG_NUM_THREADS 11 
 #define NUM_THREADS 1 << LOG_NUM_THREADS

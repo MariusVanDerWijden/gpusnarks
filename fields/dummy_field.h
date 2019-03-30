@@ -30,6 +30,13 @@ class Field {
         static uint32_t mod;
         //N
         static uint32_t n;
+		 //Default constructor
+    	Field() = default;
+		//Construct from value
+		Field(uint32_t value)
+		{
+			im_rep = value;
+		} 
 		//Returns zero element
     	static Field zero();
     	//Returns one element

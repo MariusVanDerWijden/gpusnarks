@@ -9,6 +9,6 @@ list(APPEND CUDA_NVCC_FLAGS_RELEASE -O3)
 
 include_directories(${MY_SOURCE_DIR}/cuda)
 
-cuda_add_library(fft_cuda STATIC fft_kernel.cu fft_kernel.h field.h)
+cuda_add_library(fft_cuda STATIC fft_kernel.cu fft_kernel.h device_field.h)
 
 target_include_directories(fft_cuda PUBLIC ${CUDA_INCLUDE_DIRS})
