@@ -16,12 +16,49 @@
  * limitations under the License.
  *****************************************************************************/
 
-#pragma once 
-#include <vector>
+#pragma once
+#include <cstdint>
 
-#ifdef __cplusplus
+#include <cuda.h>
+#include <cuda_runtime.h>
 
-template<typename FieldT> 
-	void best_fft (FieldT *a, size_t _size, const FieldT &omg);
+#define SIZE (256 / 32)
 
-#endif
+#define cu_fun __host__ __device__ 
+
+namespace fields{
+
+using size_t = decltype(sizeof 1ll);
+
+__constant__
+uint32_t _mod [SIZE];
+
+struct Field {
+	//Intermediate representation
+	uint32_t im_rep [SIZE];
+    //Returns zero element
+    cu_fun static Field zero()
+    {
+        Field res;
+        for(size_t i = 0; i < SIZE; i++)
+            res.im_rep[i] = 0;
+        return res;
+    }
+
+    //Returns one element
+    cu_fun static Field one()
+    {
+        Field res;
+            res.im_rep[SIZE - 1] = 1;
+        return res;
+    }
+    //Default constructor
+    Field() = default;
+    //Construct from value
+    cu_fun Field(uint32_t value)
+    {
+        im_rep[SIZE - 1] = value;
+    }
+};
+
+}

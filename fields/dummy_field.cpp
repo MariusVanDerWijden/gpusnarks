@@ -18,18 +18,26 @@
 #include "dummy_field.h"
 #include "assert.h"
 
-namespace fields{
+#define size (256 / 32)
+
+namespace dummy_fields{
+
+uint32_t Field::mod = 0;
 
 //Returns zero element
 Field Field::zero()
 {
-    return 0;
+    Field f;
+    f.im_rep = 0;
+    return f;
 }
 
 //Returns one element
 Field Field::one()
 {
-    return 1;
+    Field f;
+    f.im_rep = 1;
+    return f;
 }
 
 //Returns true iff this element is zero
@@ -90,7 +98,7 @@ void Field::mul_inv(Field & fld1)
 //Exponentiates this element
 void Field::pow(Field & fld1, const size_t pow)
 {
-    uint32_t * tmp = fld1.im_rep;
+    uint32_t tmp = fld1.im_rep;
     for(size_t i = 0; i < pow; i++)
     {
         tmp *= fld1.im_rep;

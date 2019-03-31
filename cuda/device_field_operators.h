@@ -15,38 +15,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *****************************************************************************/
-#include "field.h"
-#include "assert.h"
+
+#pragma once
+#include <cstdint>
+
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include "device_field.h"
+
+#define SIZE (256 / 32)
+
+#define cu_fun __host__ __device__ 
 
 namespace fields{
 
-//Returns zero element
-Field Field::zero()
-{
-    Field res;
-    for(size_t i = 0; i < size; i++)
-        res.im_rep[i] = 0;
-    return res;
-}
+using size_t = decltype(sizeof 1ll);
 
-//Returns one element
-Field Field::one()
+cu_fun bool operator==(const Field& lhs, const Field& rhs)
 {
-    Field res;
-        res.im_rep[size - 1] = 1;
-    return res;
+    for(size_t i = 0; i < SIZE; i++)
+        if(lhs.im_rep[i] != rhs.im_rep[i])
+            return false;
+    return true;
 }
 
 //Returns true iff this element is zero
-bool Field::is_zero(const Field & fld)
+cu_fun bool is_zero(const Field & fld)
 {
-    for(size_t i = 0; i < size; i++)
+    for(size_t i = 0; i < SIZE; i++)
         if(fld.im_rep[i] != 0)
             return false;
     return true;
 }
 
-bool Field::less(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
+cu_fun bool less(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
 {
     if(e1_size < e2_size)
         return true;
@@ -56,7 +58,7 @@ bool Field::less(uint32_t* element1, const size_t e1_size, const uint32_t* eleme
     return element1[e1_size - e2_size] < element2[0];
 }
 
-int Field::add(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
+cu_fun int add(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
 {
     //check that first array can handle overflow
     assert(e1_size == e2_size + 1);
@@ -64,7 +66,7 @@ int Field::add(uint32_t* element1, const size_t e1_size, const uint32_t* element
     return -1;
 }
 
-int Field::substract(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
+cu_fun int substract(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
 {
     assert(e1_size >= e2_size);
     bool carry = false;
@@ -82,7 +84,7 @@ int Field::substract(uint32_t* element1, const size_t e1_size, const uint32_t* e
     return 1;
 }
 
-void Field::modulo(uint32_t* element, const size_t e_size, const uint32_t* _mod, const size_t mod_size)
+cu_fun void modulo(uint32_t* element, const size_t e_size, const uint32_t* _mod, const size_t mod_size)
 {
     while(!less(element, e_size, _mod, mod_size))
     {
@@ -91,7 +93,7 @@ void Field::modulo(uint32_t* element, const size_t e_size, const uint32_t* _mod,
     }
 } 
 
-uint32_t* Field::multiply(const uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
+cu_fun uint32_t* multiply(const uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
 {
     uint32_t* tmp = (uint32_t*) malloc ((e1_size + e2_size) * sizeof(uint32_t));
     uint64_t temp;
@@ -109,20 +111,20 @@ uint32_t* Field::multiply(const uint32_t* element1, const size_t e1_size, const 
 }
 
 //Squares this element
-void Field::square(Field & fld)
+cu_fun void square(Field & fld)
 {
     //TODO since squaring produces equal intermediate results, this can be sped up
-    uint32_t * tmp  = multiply(fld.im_rep, size, fld.im_rep, size);
+    uint32_t * tmp  = multiply(fld.im_rep, SIZE, fld.im_rep, SIZE);
     //size of tmp is 2*size
-    modulo(tmp, 2*size, _mod, size);
+    modulo(tmp, 2*SIZE, _mod, SIZE);
     //Last size words are the result
-    for(size_t i = 0; i < size; i++)
-        fld.im_rep[i] = tmp[size + i]; 
+    for(size_t i = 0; i < SIZE; i++)
+        fld.im_rep[i] = tmp[SIZE + i]; 
 }
 
 /*
 //Doubles this element
-void Field::double(Field & fld)
+void double(Field & fld)
 {
     uint32_t temp[] = {2};
     uint32_t tmp[] = multiply(fld.im_rep, size, temp, 1);
@@ -134,66 +136,63 @@ void Field::double(Field & fld)
 }*/
 
 //Negates this element
-void Field::negate(Field & fld)
+cu_fun void negate(Field & fld)
 {
     //TODO implement
 }
 
 //Adds two elements
-__host__ __device__
-void Field::add(Field & fld1, const Field & fld2)
+cu_fun void add(Field & fld1, const Field & fld2)
 {
     //TODO find something more elegant
-    uint32_t tmp[size + 1];
-    for(size_t i = 0; i < size; i++)
+    uint32_t tmp[SIZE + 1];
+    for(size_t i = 0; i < SIZE; i++)
         tmp[i + 1] = fld1.im_rep[i];
 
-    add(tmp, size + 1, fld2.im_rep, size);
-    modulo(tmp, size + 1, _mod, size);
-    for(size_t i = 0; i < size; i++)
+    add(tmp, SIZE + 1, fld2.im_rep, SIZE);
+    modulo(tmp, SIZE + 1, _mod, SIZE);
+    for(size_t i = 0; i < SIZE; i++)
         fld1.im_rep[i] = tmp[i + 1];
 }
 
 //Subtract element two from element one
-__host__ __device__
-void Field::substract(Field & fld1, const Field & fld2)
+cu_fun void substract(Field & fld1, const Field & fld2)
 {
-    if(substract(fld1.im_rep, size, fld2.im_rep, size) == -1)
+    if(substract(fld1.im_rep, SIZE, fld2.im_rep, SIZE) == -1)
     {
-        modulo(fld1.im_rep, size, _mod, size);
+        modulo(fld1.im_rep, SIZE, _mod, SIZE);
     }
 }
 
 //Multiply two elements
-__host__ __device__
-void Field::mul(Field & fld1, const Field & fld2)
+cu_fun void mul(Field & fld1, const Field & fld2)
 {
-    uint32_t * tmp = multiply(fld1.im_rep, size, fld2.im_rep, size);
+    uint32_t * tmp = multiply(fld1.im_rep, SIZE, fld2.im_rep, SIZE);
     //size of tmp is 2*size
-    modulo(tmp, 2*size, _mod, size);
+    modulo(tmp, 2*SIZE, _mod, SIZE);
     //Last size words are the result
-    for(size_t i = 0; i < size; i++)
-        fld1.im_rep[i] = tmp[size + i]; 
+    for(size_t i = 0; i < SIZE; i++)
+        fld1.im_rep[i] = tmp[SIZE + i]; 
 }
 
 //Computes the multiplicative inverse of this element, if nonzero
-void Field::mul_inv(Field & fld1)
+cu_fun void mul_inv(Field & fld1)
 {
     //TODO implement
 }
 
 //Exponentiates this element
-__host__ __device__
-void Field::pow(Field & fld1, const size_t pow)
+cu_fun void pow(Field & fld1, const size_t pow)
 {
     uint32_t * tmp = fld1.im_rep;
     for(size_t i = 0; i < pow; i++)
     {
-        tmp = multiply(tmp, size, fld1.im_rep, size);
-        modulo(tmp, 2 * size, _mod, size);
-        for(size_t i = 0; i < size; i++)
-            tmp[i] = tmp[size + i];
+        tmp = multiply(tmp, SIZE, fld1.im_rep, SIZE);
+        modulo(tmp, 2 * SIZE, _mod, SIZE);
+        for(size_t i = 0; i < SIZE; i++)
+            tmp[i] = tmp[SIZE + i];
     }
 }
+
 
 }

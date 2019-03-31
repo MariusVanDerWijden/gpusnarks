@@ -32,7 +32,8 @@ void _basic_serial_radix2_FFT(std::vector<FieldT> &a, const FieldT omega, const 
     for (size_t s = 1; s <= logn; ++s)
     {
         // w_m is 2^s-th root of unity now
-        const FieldT w_m = omega^(n/(2*m));
+        FieldT w_m = omega;
+        FieldT::pow(w_m, (n/(2*m)));
 
         asm volatile  ("/* pre-inner */");
         for (size_t k = 0; k < n; k += 2*m)
@@ -40,10 +41,12 @@ void _basic_serial_radix2_FFT(std::vector<FieldT> &a, const FieldT omega, const 
             FieldT w = one;
             for (size_t j = 0; j < m; ++j)
             {
-                const FieldT t = w * a[k+j+m];
-                a[k+j+m] = a[k+j] - t;
-                a[k+j] += t;
-                w *= w_m;
+                FieldT t = w;
+                FieldT::mul(w, a[k+j+m]);
+                a[k+j+m] = a[k+j];
+                FieldT::substract(a[k+j+m], t);
+                FieldT::add(a[k+j], t);
+                FieldT::mul(w, w_m);
             }
         }
         asm volatile ("/* post-inner */");
@@ -74,8 +77,10 @@ void _basic_parallel_radix2_FFT_inner(std::vector<FieldT> &a, const FieldT omega
     #pragma omp parallel for
     for (size_t j = 0; j < num_cpus; ++j)
     {
-        const FieldT omega_j = omega^j;
-        const FieldT omega_step = omega^(j<<(log_m - log_cpus));
+        FieldT omega_j = omega;
+        FieldT::pow(omega_j,j);
+        FieldT omega_step = omega;
+        FieldT::pow(omega_step, (j<<(log_m - log_cpus)));
 	
 	    //printf("omega_host: %d %d \n", omega_j, omega_step);
         FieldT elt = one;
@@ -85,14 +90,21 @@ void _basic_parallel_radix2_FFT_inner(std::vector<FieldT> &a, const FieldT omega
             {
                 // invariant: elt is omega^(j*idx)
                 const size_t idx = (i + (s<<(log_m - log_cpus))) % (1u << log_m);
-                tmp[j][i] += a[idx] * elt;
-                elt *= omega_step;
+                FieldT temp = a[idx];
+                FieldT::mul(temp, elt);
+                FieldT::add(tmp[j][i], temp);
+                //tmp[j][i] += a[idx] * elt;
+                FieldT::mul(elt, omega_step);
+                //elt *= omega_step;
+
             }
-            elt *= omega_j;
+            FieldT::mul(elt, omega_j);
+            //elt *= omega_j;
         }
     }
     printf("host: %d \n ", tmp[0][0]);
-    const FieldT omega_num_cpus = omega^num_cpus;
+    FieldT omega_num_cpus = omega;
+    FieldT::pow(omega_num_cpus, num_cpus);
 
     #pragma omp parallel for
     for (size_t j = 0; j < num_cpus; ++j)
