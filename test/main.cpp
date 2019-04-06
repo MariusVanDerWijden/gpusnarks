@@ -14,19 +14,28 @@ typedef std::chrono::high_resolution_clock Clock;
 
 int main(void) 
 {
-    size_t _size = 12;
-    int * array = (int*) malloc(_size * sizeof(int));
-    memset(array, 0x1234, _size * sizeof(int));
-    std::vector<fields::Field> v1(array, array + _size);
-    std::vector<dummy_fields::Field> v2(array, array + _size);
+    size_t _size = 1 << 18;
+    std::vector<fields::Field> v1;
+    std::vector<dummy_fields::Field> v2;
+
+    v1.resize(_size);
+    v2.resize(_size);
+
+    for(size_t i = 0; i < _size; i++)
+    {
+    	v1.push_back(fields::Field(1234));
+    	v2.push_back(dummy_fields::Field(1234));
+    }
 
     omp_set_num_threads( 8 );
 
     {
         {
+        	printf("Field size: %d, Field count: %d\n", sizeof(fields::Field),v1.size());
+        	printf("A address: %p Last element: %d\n", &v1[0], v1[_size -1]);
             auto t1 = Clock::now();
-            //void best_fft (FieldT *a, size_t _size, const FieldT &omg)
-            best_fft<fields::Field>(&v1[0], v1.size(), fields::Field(123));
+            best_fft<fields::Field>(v1, v1.size(), fields::Field(123));
+            //best_fft<fields::Field>(&v1[0], v1.size(), fields::Field(123));
             auto t2 = Clock::now();
             printf("Device FFT took %ld \n",
                 std::chrono::duration_cast<

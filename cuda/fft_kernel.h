@@ -22,6 +22,7 @@
 #ifdef __cplusplus
 
 template<typename FieldT> 
-	void best_fft (FieldT *a, size_t _size, const FieldT &omg);
+void best_fft (std::vector<FieldT> &a, size_t _size, const FieldT &omg);
+	//void best_fft (FieldT *a, size_t _size, const FieldT &omg);
 
 #endif

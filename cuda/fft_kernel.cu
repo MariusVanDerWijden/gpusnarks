@@ -26,10 +26,10 @@
 #include "device_field.h"
 #include "device_field_operators.h"
 
-#define LOG_NUM_THREADS 11 
-#define NUM_THREADS 1 << LOG_NUM_THREADS
-#define LOG_CONSTRAINTS 22 
-#define CONSTRAINTS 1 << LOG_CONSTRAINTS
+#define LOG_NUM_THREADS 16
+#define NUM_THREADS (1 << LOG_NUM_THREADS)
+#define LOG_CONSTRAINTS 18
+#define CONSTRAINTS (1 << LOG_CONSTRAINTS)
 
 #define CUDA_CALL( call )               \
 {                                       \
@@ -156,21 +156,24 @@ template<typename FieldT>  __global__ void cuda_fft()
 }
 
 template<typename FieldT> 
-void best_fft (FieldT *a, size_t _size, const FieldT &omg)
+void best_fft (std::vector<FieldT> &a, size_t _size, const FieldT &omg)
+//void best_fft (FieldT *a, size_t _size, const FieldT &omg)
 {
-    FieldT* fld;
-    CUDA_CALL (cudaGetSymbolAddress((void **)&fld, field<FieldT>));
-    CUDA_CALL( cudaMemcpy(&fld, &a[0], sizeof(FieldT) * _size, cudaMemcpyHostToDevice));
+	int cnt;
+    cudaGetDeviceCount(&cnt);
+    printf("CUDA Devices: %d, Field size: %d, Field count: %d\n", cnt, sizeof(FieldT), a.size());
+
+    CUDA_CALL( cudaMemcpyToSymbol(field<FieldT>, &a[0], CONSTRAINTS, cudaMemcpyHostToDevice) );
     
     const FieldT oneElem = FieldT::one();
     const FieldT zeroElem = FieldT::zero();
-    cudaMemcpyToSymbol(omega<FieldT>, &omg, sizeof(FieldT), 0, cudaMemcpyHostToDevice);
-    cudaMemcpyToSymbol(one<FieldT>, &oneElem, sizeof(FieldT), 0, cudaMemcpyHostToDevice);
-    cudaMemcpyToSymbol(zero<FieldT>, &zeroElem, sizeof(FieldT), 0, cudaMemcpyHostToDevice);
+    CUDA_CALL( cudaMemcpyToSymbol(omega<FieldT>, &omg, sizeof(FieldT), 0, cudaMemcpyHostToDevice) );
+    CUDA_CALL( cudaMemcpyToSymbol(one<FieldT>, &oneElem, sizeof(FieldT), 0, cudaMemcpyHostToDevice) );
+    CUDA_CALL( cudaMemcpyToSymbol(zero<FieldT>, &zeroElem, sizeof(FieldT), 0, cudaMemcpyHostToDevice) );
 
-    int blocks = NUM_THREADS/1024 + 1;
-    int threads = NUM_THREADS > 1024 ? 1024 : NUM_THREADS; 
-    printf("blocks %d, threads %d \n",blocks,threads);
+    size_t blocks = NUM_THREADS / 1024 + 1;
+    size_t threads = NUM_THREADS > 1024 ? 1024 : NUM_THREADS;
+    printf("threads %d, blocks %d, threads %d \n",NUM_THREADS, blocks, threads);
     cuda_fft<FieldT> <<<blocks,threads>>>();
         
     cudaError_t error = cudaGetLastError();
@@ -188,10 +191,11 @@ void best_fft (FieldT *a, size_t _size, const FieldT &omg)
     FieldT * result = (FieldT*) malloc (sizeof(FieldT) * _size);    
     cudaMemcpy(result, res, sizeof(FieldT) * _size, cudaMemcpyDeviceToHost);
 
-    std::copy(result, result + _size, a);
+    //std::copy(result, result + _size, a);
     CUDA_CALL( cudaDeviceSynchronize();)
 }
 
 //List with all templates that should be generated
 //template void best_fft(std::vector<int> &a, const int &omg);
-template void best_fft(fields::Field *v, size_t _size, const fields::Field &omg);
+//template void best_fft(fields::Field *v, size_t _size, const fields::Field &omg);
+template void best_fft(std::vector<fields::Field> &v, size_t _size, const fields::Field &omg);
