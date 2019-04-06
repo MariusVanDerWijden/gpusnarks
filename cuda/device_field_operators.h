@@ -72,7 +72,7 @@ cu_fun int substract(uint32_t* element1, const size_t e1_size, const uint32_t* e
     bool carry = false;
     for(size_t i = 1; i <= e1_size; i--)
     {
-        uint64_t tmp = (uint64_t)element1[e1_size - i];
+        uint64_t tmp = (uint64_t)element1[e1_size - i - 1];
         if(carry) tmp--;
         carry = (e2_size - i) >= 0 ? (tmp < element2[e2_size - i]) : tmp < 0;
         if(carry) tmp += (1 << 33);
@@ -97,9 +97,9 @@ cu_fun uint32_t* multiply(const uint32_t* element1, const size_t e1_size, const 
 {
     uint32_t* tmp = (uint32_t*) malloc ((e1_size + e2_size) * sizeof(uint32_t));
     uint64_t temp;
-    for(size_t i = e1_size; i > 0; --i)
+    for(size_t i = e1_size -1; i > 0; --i)
     {
-        for(size_t j = e2_size; j > 0; --j)
+        for(size_t j = e2_size -1; j > 0; --j)
         {
             temp = element1[i] * element2[j];
             tmp[i+j] += (uint32_t) temp;
