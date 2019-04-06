@@ -18,8 +18,8 @@ int main(void)
     std::vector<fields::Field> v1;
     std::vector<dummy_fields::Field> v2;
 
-    v1.resize(_size);
-    v2.resize(_size);
+    v1.reserve(_size);
+    v2.reserve(_size);
 
     for(size_t i = 0; i < _size; i++)
     {
@@ -34,7 +34,7 @@ int main(void)
         	printf("Field size: %d, Field count: %d\n", sizeof(fields::Field),v1.size());
         	printf("A address: %p Last element: %d\n", &v1[0], v1[_size -1]);
             auto t1 = Clock::now();
-            best_fft<fields::Field>(v1, v1.size(), fields::Field(123));
+            best_fft<fields::Field>(v1, fields::Field(123));
             //best_fft<fields::Field>(&v1[0], v1.size(), fields::Field(123));
             auto t2 = Clock::now();
             printf("Device FFT took %ld \n",
