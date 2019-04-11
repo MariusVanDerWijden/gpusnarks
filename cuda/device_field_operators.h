@@ -79,10 +79,11 @@ cu_fun int substract(uint32_t* element1, const size_t e1_size, const uint32_t* e
     for(size_t i = 1; i <= e1_size; i++)
     {
         uint64_t tmp = (uint64_t)element1[e1_size - i - 1];
+        bool underflow = (tmp == 0);
         if(carry) tmp--;
-        carry = (e2_size - i) >= 0 ? (tmp < element2[e2_size - i]) : tmp < 0;
+        carry = (e2_size >= i) ? (tmp < element2[e2_size - i]) : underflow;
         if(carry) tmp += ((uint64_t)1 << 33);
-        element1[i] = tmp - ((e2_size - i) >= 0) ? element2[e2_size - i] : 0;
+        element1[i] = tmp - (e2_size >= i) ? element2[e2_size - i] : 0;
     }
     if(carry)
         //negative
