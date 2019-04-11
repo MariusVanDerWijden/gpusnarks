@@ -58,19 +58,25 @@ cu_fun bool less(uint32_t* element1, const size_t e1_size, const uint32_t* eleme
     return element1[e1_size - e2_size] < element2[0];
 }
 
+//Returns -1 to indicate an overflow, 0 otherwise
 cu_fun int add(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
 {
     //check that first array can handle overflow
     assert(e1_size == e2_size + 1);
-    //TODO implement
-    return -1;
+    for(size_t i = e1_size -1 ; i > 1 ; i--)
+    {
+        uint64_t tmp = (uint64_t)element1[i] + element2[i];
+        element1[i] = (uint32_t)tmp;
+        element1[i - 1] = (uint32_t)tmp >> 32;
+    }
+    return element1[0] > 0 ? -1 : 0;
 }
 
 cu_fun int substract(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
 {
     assert(e1_size >= e2_size);
     bool carry = false;
-    for(size_t i = 1; i <= e1_size; i--)
+    for(size_t i = 1; i <= e1_size; i++)
     {
         uint64_t tmp = (uint64_t)element1[e1_size - i - 1];
         if(carry) tmp--;
@@ -89,7 +95,7 @@ cu_fun void modulo(uint32_t* element, const size_t e_size, const uint32_t* _mod,
     while(!less(element, e_size, _mod, mod_size))
     {
         if(substract(element, e_size, _mod, mod_size) == -1)
-            return; //TODO handle negative case
+            add(element, e_size, _mod, mod_size);
     }
 } 
 
