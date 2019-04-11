@@ -59,6 +59,12 @@ struct Field {
     {
         im_rep[SIZE - 1] = value;
     }
+
+    cu_fun Field(uint32_t[] value)
+    {
+        for(size_t i = 0; i < SIZE; i++)
+            im_rep[i] = value[i];
+    }
 };
 
 }
