@@ -67,7 +67,7 @@ cu_fun int add(uint32_t* element1, const size_t e1_size, const uint32_t* element
     {
         uint64_t tmp = (uint64_t)element1[i] + element2[i];
         element1[i] = (uint32_t)tmp;
-        element1[i - 1] = (uint32_t)tmp >> 32;
+        element1[i - 1] = (uint32_t)((uint64_t)tmp >> 32);
     }
     return element1[0] > 0 ? -1 : 0;
 }
@@ -81,7 +81,7 @@ cu_fun int substract(uint32_t* element1, const size_t e1_size, const uint32_t* e
         uint64_t tmp = (uint64_t)element1[e1_size - i - 1];
         if(carry) tmp--;
         carry = (e2_size - i) >= 0 ? (tmp < element2[e2_size - i]) : tmp < 0;
-        if(carry) tmp += (1 << 33);
+        if(carry) tmp += ((uint64_t)1 << 33);
         element1[i] = tmp - ((e2_size - i) >= 0) ? element2[e2_size - i] : 0;
     }
     if(carry)
