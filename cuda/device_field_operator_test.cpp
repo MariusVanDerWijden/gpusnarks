@@ -16,8 +16,11 @@
  * limitations under the License.
  *****************************************************************************/
 
+#define DEBUG
+
 #include "device_field.h"
 #include "device_field_operators.h"
+#include <assert.h>
 
 namespace fields{
 
@@ -43,7 +46,7 @@ namespace fields{
 
     void testModulo()
     {
-        fields::Field f1(0);
+        fields::Field f1(uint32_t(0));
         fields::Field f2(1234);
         
         fields::Field f3();

@@ -19,13 +19,17 @@
 #pragma once
 #include <cstdint>
 
-#include <cuda.h>
-#include <cuda_runtime.h>
 #include "device_field.h"
 
 #define SIZE (256 / 32)
 
+#ifndef DEBUG
 #define cu_fun __host__ __device__ 
+#else
+#define cu_fun
+#include <assert.h>
+#include <malloc.h>
+#endif
 
 namespace fields{
 

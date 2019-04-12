@@ -19,18 +19,28 @@
 #pragma once
 #include <cstdint>
 
+#ifndef DEBUG
 #include <cuda.h>
 #include <cuda_runtime.h>
 
+#define cu_fun __host__ __device__ 
+#else
+
+#define cu_fun
+
+#endif
+
 #define SIZE (256 / 32)
 
-#define cu_fun __host__ __device__ 
+
 
 namespace fields{
 
 using size_t = decltype(sizeof 1ll);
 
+#ifndef DEBUG
 __constant__
+#endif
 uint32_t _mod [SIZE];
 
 struct Field {
@@ -60,7 +70,7 @@ struct Field {
         im_rep[SIZE - 1] = value;
     }
 
-    cu_fun Field(uint32_t value[])
+    cu_fun Field(uint32_t* value)
     {
         for(size_t i = 0; i < SIZE; i++)
             im_rep[i] = value[i];
