@@ -16,6 +16,7 @@
  * limitations under the License.
  *****************************************************************************/
 
+#include "device_field.h"
 #include "device_field_operators.h"
 
 namespace fields{
@@ -45,9 +46,36 @@ namespace fields{
         fields::Field f1(0);
         fields::Field f2(1234);
         
-        fields::Field f3()
+        fields::Field f3();
     }
 
+    void testMultiply()
+    {
+        fields::Field f1(1234);
+        fields::Field f2(1234);
+        mul(f1, f2);
+        assert(f1 == fields::Field(1522756));
+        fields::Field f3(1234);
+        square(f3);
+        assert(f1 == f3);
+    }
+
+    void testPow()
+    {
+        fields::Field f1(2);
+        pow(f1, 0);
+        assert(f1 == fields::Field::one());
+        pow(f1, 2);
+        assert(f1 == fields::Field(4));
+        pow(f1, 10);
+        assert(f1 == fields::Field(1048576));
+
+        fields::Field f2(2);
+        fields::Field f3(1048576);
+        pow(f2, 20);
+        assert(f2 == f3);
+
+}
     void testConstructor()
     {
         fields::Field f3(1);
