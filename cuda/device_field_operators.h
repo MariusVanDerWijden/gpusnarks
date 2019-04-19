@@ -68,9 +68,10 @@ cu_fun int add(uint32_t* element1, const size_t e1_size, const uint32_t* element
     //check that first array can handle overflow
     assert(e1_size == e2_size + 1);
     assert(e1_size - 1 > 1);
+    //TODO this still contains an off-by-one error
     for(size_t i = e1_size -1 ; i > 1 ; i--)
     {
-        uint64_t tmp = (uint64_t)element1[i] + element2[i];
+        uint64_t tmp = (uint64_t)element1[i] + (uint64_t)element2[i];
         element1[i] = (uint32_t)tmp;
         element1[i - 1] = (uint32_t)((uint64_t)tmp >> 32);
     }
@@ -96,13 +97,18 @@ cu_fun int substract(uint32_t* element1, const size_t e1_size, const uint32_t* e
     return 1;
 }
 
-cu_fun void modulo(uint32_t* element, const size_t e_size, const uint32_t* _mod, const size_t mod_size)
+cu_fun void modulo(uint32_t* element, const size_t e_size, const uint32_t* mod, const size_t mod_size)
 {
     //TODO this currently results in an endless loop
-    while(!less(element, e_size, _mod, mod_size))
+    while(!less(element, e_size, mod, mod_size))
     {
-        if(substract(element, e_size, _mod, mod_size) == -1)
-            add(element, e_size, _mod, mod_size);
+        if(substract(element, e_size, mod, mod_size) == -1)
+            add(element, e_size, mod, mod_size);
+#ifdef DEBUG
+        printField(Field(element));
+        printField(Field(mod));
+        assert(!"adsf");
+#endif
     }
 } 
 
@@ -161,8 +167,9 @@ cu_fun void add(Field & fld1, const Field & fld2)
     uint32_t tmp[SIZE + 1];
     for(size_t i = 0; i < SIZE; i++)
         tmp[i + 1] = fld1.im_rep[i];
-
+    printField(fld2.im_rep);
     add(tmp, SIZE + 1, fld2.im_rep, SIZE);
+    printField(tmp);
     modulo(tmp, SIZE + 1, _mod, SIZE);
     for(size_t i = 0; i < SIZE; i++)
         fld1.im_rep[i] = tmp[i + 1];

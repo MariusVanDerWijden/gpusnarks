@@ -27,6 +27,8 @@
 #else
 
 #define cu_fun
+#include <cstdio>
+#include <cassert>
 
 #endif
 
@@ -65,16 +67,36 @@ struct Field {
     //Default constructor
     Field() = default;
     //Construct from value
-    cu_fun Field(uint32_t value)
+    cu_fun Field(const uint32_t value)
     {
         im_rep[SIZE - 1] = value;
     }
 
-    cu_fun Field(uint32_t* value)
+    cu_fun Field(const uint32_t* value)
     {
         for(size_t i = 0; i < SIZE; i++)
             im_rep[i] = value[i];
     }
 };
+
+#ifdef DEBUG
+    void printField(fields::Field f)
+    {
+        for(size_t i = 0; i < SIZE; i++)
+            printf("%u, ", f.im_rep[i]);
+        printf("\n");
+    }
+
+    void testEquality(fields::Field f1, fields::Field f2)
+    {
+        for(size_t i = 0; i < SIZE; i++)
+            if(f1.im_rep[i] != f2.im_rep[i])
+            {
+                printField(f1);
+                printField(f2);
+                assert(!"Missmatch");
+            }
+    }
+#endif
 
 }

@@ -24,24 +24,6 @@
 
 namespace fields{
 
-    void printField(fields::Field f)
-    {
-        for(size_t i = 0; i < SIZE; i++)
-            printf("%u, ", f.im_rep[i]);
-        printf("\n");
-    }
-
-    void testEquality(fields::Field f1, fields::Field f2)
-    {
-        for(size_t i = 0; i < SIZE; i++)
-            if(f1.im_rep[i] != f2.im_rep[i])
-            {
-                printField(f1);
-                printField(f2);
-                assert(!"Missmatch");
-            }
-    }
-
     void testAdd()
     {
         fields::Field f1(1234);
@@ -96,7 +78,8 @@ namespace fields{
         pow(f2, 20);
         assert(f2 == f3);
 
-}
+    }
+
     void testConstructor()
     {
         fields::Field f3(1);
@@ -114,10 +97,24 @@ namespace fields{
         fields::Field f6(tmp);
         testEquality(f6, f2);
     }
+
+    void setMod()
+    {
+        assert(SIZE == 8);
+        _mod[0] = 0;
+        _mod[1] = 0;
+        _mod[2] = 0;
+        _mod[3] = 0;
+        _mod[4] = 0;
+        _mod[5] = 0;
+        _mod[6] = 1;
+        _mod[7] = 0;
+    }
 }
 
 int main(int argc, char** argv)
 {
+    fields::setMod();
     fields::testConstructor();
     return 0;
 }
