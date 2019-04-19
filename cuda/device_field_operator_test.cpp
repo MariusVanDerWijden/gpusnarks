@@ -24,6 +24,24 @@
 
 namespace fields{
 
+    void printField(fields::Field f)
+    {
+        for(size_t i = 0; i < SIZE; i++)
+            printf("%u, ", f.im_rep[i]);
+        printf("\n");
+    }
+
+    void testEquality(fields::Field f1, fields::Field f2)
+    {
+        for(size_t i = 0; i < SIZE; i++)
+            if(f1.im_rep[i] != f2.im_rep[i])
+            {
+                printField(f1);
+                printField(f2);
+                assert(!"Missmatch");
+            }
+    }
+
     void testAdd()
     {
         fields::Field f1(1234);
@@ -82,26 +100,27 @@ namespace fields{
     void testConstructor()
     {
         fields::Field f3(1);
-        assert(f3 == fields::Field::one());
-        fields::Field f4();
-        assert(f4 == fields::Field::zero());
-        fields::Field f5(0);
-        assert(f5 == fields::Field::zero());
+        testEquality(f3, fields::Field::one());
+        fields::Field f4;
+        testEquality(f4, fields::Field::zero());
+        fields::Field f5(uint32_t(0));
+        testEquality(f5, fields::Field::zero());
 
-        fields::Field f1();
+        fields::Field f1;
         fields::Field f2(1234);
         add(f1, fields::Field(1234));
-        assert(f1 == f2);
-        uint32_t[SIZE] tmp ={0,0,0,0,0,0,0,1234};
+        testEquality(f1, f2);
+        uint32_t tmp [SIZE] ={0,0,0,0,0,0,0,1234};
         fields::Field f6(tmp);
-        assert(f6 == f2);
+        testEquality(f6, f2);
     }
-
-    public static void main(int argc, char* argv)
-    {
-
-    }
-
-
-
 }
+
+int main(int argc, char** argv)
+{
+    fields::testConstructor();
+    return 0;
+}
+
+
+

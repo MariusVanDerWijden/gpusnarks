@@ -45,7 +45,7 @@ uint32_t _mod [SIZE];
 
 struct Field {
 	//Intermediate representation
-	uint32_t im_rep [SIZE];
+	uint32_t im_rep [SIZE] = {0};
     //Returns zero element
     cu_fun static Field zero()
     {
