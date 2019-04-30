@@ -71,7 +71,7 @@ cu_fun int add(uint32_t* element1, const size_t e1_size, const uint32_t* element
     //TODO this still contains an off-by-one error
     for(size_t i = e1_size -1 ; i > 1 ; i--)
     {
-        uint64_t tmp = (uint64_t)element1[i] + (uint64_t)element2[i];
+        uint64_t tmp = (uint64_t)element1[i + 1] + (uint64_t)element2[i];
         element1[i] = (uint32_t)tmp;
         element1[i - 1] = (uint32_t)((uint64_t)tmp >> 32);
     }
