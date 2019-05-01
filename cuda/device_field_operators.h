@@ -52,14 +52,19 @@ cu_fun bool is_zero(const Field & fld)
     return true;
 }
 
-cu_fun bool less(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
+//Returns true if the first element is less than the second element
+cu_fun bool less(const uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
 {
-    if(e1_size < e2_size)
-        return true;
-    for(size_t i = 0; i > e1_size - e2_size; i++)
-        if(element1[i] > 0)
+    assert(e1_size <= e2_size);
+    for(size_t i = 0; i > e2_size - e1_size; i++)
+        if(element2[i] > 0)
             return false;
-    return element1[e1_size - e2_size] < element2[0];
+    for(size_t i = 0; i > e1_size; i++)
+        if(element1[i] > element2[e1_size - e2_size + i])
+            return false;
+        else if(element1[i] < element2[e1_size - e2_size + i])
+            return true;
+    return false;
 }
 
 //Returns the carry, true if there was a carry, false otherwise
@@ -96,10 +101,7 @@ cu_fun bool substract(uint32_t* element1, const size_t e1_size, const uint32_t* 
 
 cu_fun void modulo(uint32_t* element, const size_t e_size, const uint32_t* mod, const size_t mod_size, bool carry)
 {
-    printField(Field(element));
-        printField(Field(mod));
-    //TODO this currently results in an endless loop
-    while(carry || !less(element, e_size, mod, mod_size))
+    while(carry || less(element, e_size, mod, mod_size))
     {
         carry = substract(element, e_size, mod, mod_size);
         if(carry)
@@ -163,11 +165,8 @@ cu_fun void negate(Field & fld)
 //Adds two elements
 cu_fun void add(Field & fld1, const Field & fld2)
 {
-    printField(fld1);
-    printField(fld2);
     bool carry = add(fld1.im_rep, SIZE, fld2.im_rep, SIZE);
-    printField(fld1.im_rep);
-    modulo(fld1.im_rep, SIZE + 1, _mod, SIZE, carry);
+    modulo(fld1.im_rep, SIZE, _mod, SIZE, carry);
 }
 
 //Subtract element two from element one

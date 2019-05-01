@@ -30,7 +30,7 @@ namespace fields{
         fields::Field f2(1234);
         fields::Field result(2468);
         add(f1,f2);
-        assert(f1 == f2);
+        testEquality(f1, result);
     }
 
     void testSubstract()
@@ -38,10 +38,10 @@ namespace fields{
         fields::Field f1(1234);
         fields::Field f2(1234);
         substract(f1,f2);
-        assert(f1 == fields::Field::zero());
+        testEquality(f1, fields::Field::zero());
         fields::Field f3(1235);
         substract(f3, f2);
-        assert(f3 == fields::Field::one());
+        testEquality(f3,fields::Field::one());
     }
 
     void testModulo()
@@ -57,26 +57,26 @@ namespace fields{
         fields::Field f1(1234);
         fields::Field f2(1234);
         mul(f1, f2);
-        assert(f1 == fields::Field(1522756));
+        testEquality(f1, fields::Field(1522756));
         fields::Field f3(1234);
         square(f3);
-        assert(f1 == f3);
+        testEquality(f1, f3);
     }
 
     void testPow()
     {
         fields::Field f1(2);
         pow(f1, 0);
-        assert(f1 == fields::Field::one());
+        testEquality(f1, fields::Field::one());
         pow(f1, 2);
-        assert(f1 == fields::Field(4));
+        testEquality(f1, fields::Field(4));
         pow(f1, 10);
-        assert(f1 == fields::Field(1048576));
+        testEquality(f1, fields::Field(1048576));
 
         fields::Field f2(2);
         fields::Field f3(1048576);
         pow(f2, 20);
-        assert(f2 == f3);
+        testEquality(f2, f3);
 
     }
 
@@ -116,6 +116,8 @@ int main(int argc, char** argv)
 {
     fields::setMod();
     fields::testConstructor();
+    fields::testAdd();
+    printf("\nAll tests successful\n");
     return 0;
 }
 
