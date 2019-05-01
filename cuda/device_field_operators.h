@@ -62,23 +62,23 @@ cu_fun bool less(uint32_t* element1, const size_t e1_size, const uint32_t* eleme
     return element1[e1_size - e2_size] < element2[0];
 }
 
-//Returns -1 to indicate an overflow, 0 otherwise
-cu_fun int add(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
+//Returns the carry, true if there was a carry, false otherwise
+cu_fun bool add(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
 {
-    //check that first array can handle overflow
-    assert(e1_size == e2_size + 1);
-    assert(e1_size - 1 > 1);
-    //TODO this still contains an off-by-one error
-    for(size_t i = e1_size -1 ; i > 1 ; i--)
+    assert(e1_size >= e2_size);
+    bool carry = false;
+    for(size_t i = 1; i <= e1_size; i++)
     {
-        uint64_t tmp = (uint64_t)element1[i + 1] + (uint64_t)element2[i];
-        element1[i] = (uint32_t)tmp;
-        element1[i - 1] = (uint32_t)((uint64_t)tmp >> 32);
+        uint64_t tmp = (uint64_t)element1[e1_size - i];
+        if(carry) tmp++;
+        element1[e1_size - i] = tmp + (uint64_t)element2[e1_size - i];
+        carry = (tmp >> 32) > 0;
     }
-    return element1[0] > 0 ? -1 : 0;
+    return carry;
 }
 
-cu_fun int substract(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
+//returns the carry, true if the resulting number is negative
+cu_fun bool substract(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
 {
     assert(e1_size >= e2_size);
     bool carry = false;
@@ -91,19 +91,19 @@ cu_fun int substract(uint32_t* element1, const size_t e1_size, const uint32_t* e
         if(carry) tmp += ((uint64_t)1 << 33);
         element1[i] = tmp - (e2_size >= i) ? element2[e2_size - i] : 0;
     }
-    if(carry)
-        //negative
-        return -1;
-    return 1;
+    return carry;
 }
 
-cu_fun void modulo(uint32_t* element, const size_t e_size, const uint32_t* mod, const size_t mod_size)
+cu_fun void modulo(uint32_t* element, const size_t e_size, const uint32_t* mod, const size_t mod_size, bool carry)
 {
+    printField(Field(element));
+        printField(Field(mod));
     //TODO this currently results in an endless loop
-    while(!less(element, e_size, mod, mod_size))
+    while(carry || !less(element, e_size, mod, mod_size))
     {
-        if(substract(element, e_size, mod, mod_size) == -1)
-            add(element, e_size, mod, mod_size);
+        carry = substract(element, e_size, mod, mod_size);
+        if(carry)
+            carry = add(element, e_size, mod, mod_size);
 #ifdef DEBUG
         printField(Field(element));
         printField(Field(mod));
@@ -135,7 +135,7 @@ cu_fun void square(Field & fld)
     //TODO since squaring produces equal intermediate results, this can be sped up
     uint32_t * tmp  = multiply(fld.im_rep, SIZE, fld.im_rep, SIZE);
     //size of tmp is 2*size
-    modulo(tmp, 2*SIZE, _mod, SIZE);
+    modulo(tmp, 2*SIZE, _mod, SIZE, false);
     //Last size words are the result
     for(size_t i = 0; i < SIZE; i++)
         fld.im_rep[i] = tmp[SIZE + i]; 
@@ -163,25 +163,18 @@ cu_fun void negate(Field & fld)
 //Adds two elements
 cu_fun void add(Field & fld1, const Field & fld2)
 {
-    //TODO find something more elegant
-    uint32_t tmp[SIZE + 1];
-    for(size_t i = 0; i < SIZE; i++)
-        tmp[i + 1] = fld1.im_rep[i];
-    printField(fld2.im_rep);
-    add(tmp, SIZE + 1, fld2.im_rep, SIZE);
-    printField(tmp);
-    modulo(tmp, SIZE + 1, _mod, SIZE);
-    for(size_t i = 0; i < SIZE; i++)
-        fld1.im_rep[i] = tmp[i + 1];
+    printField(fld1);
+    printField(fld2);
+    bool carry = add(fld1.im_rep, SIZE, fld2.im_rep, SIZE);
+    printField(fld1.im_rep);
+    modulo(fld1.im_rep, SIZE + 1, _mod, SIZE, carry);
 }
 
 //Subtract element two from element one
 cu_fun void substract(Field & fld1, const Field & fld2)
 {
-    if(substract(fld1.im_rep, SIZE, fld2.im_rep, SIZE) == -1)
-    {
-        modulo(fld1.im_rep, SIZE, _mod, SIZE);
-    }
+    bool carry = substract(fld1.im_rep, SIZE, fld2.im_rep, SIZE);
+    modulo(fld1.im_rep, SIZE, _mod, SIZE, carry);
 }
 
 //Multiply two elements
@@ -189,7 +182,7 @@ cu_fun void mul(Field & fld1, const Field & fld2)
 {
     uint32_t * tmp = multiply(fld1.im_rep, SIZE, fld2.im_rep, SIZE);
     //size of tmp is 2*size
-    modulo(tmp, 2*SIZE, _mod, SIZE);
+    modulo(tmp, 2*SIZE, _mod, SIZE, true);
     //Last size words are the result
     for(size_t i = 0; i < SIZE; i++)
         fld1.im_rep[i] = tmp[SIZE + i]; 
@@ -208,7 +201,7 @@ cu_fun void pow(Field & fld1, const size_t pow)
     for(size_t i = 0; i < pow; i++)
     {
         tmp = multiply(tmp, SIZE, fld1.im_rep, SIZE);
-        modulo(tmp, 2 * SIZE, _mod, SIZE);
+        modulo(tmp, 2 * SIZE, _mod, SIZE, true);
         for(size_t i = 0; i < SIZE; i++)
             tmp[i] = tmp[SIZE + i];
     }
