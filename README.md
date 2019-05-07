@@ -2,6 +2,9 @@
 
 A GPU snark accelerator written at ETHParis.
 It speeds up the Fast Fourier Transformation on Finite Elements by more than **40 times**.
+Please note that this speedup is only for 32bit values. 
+
+I am currently developing the math to support 256 bit values, which are needed for snarks.
 
 ## Setup
 
@@ -17,6 +20,8 @@ make
 CPU Intel(R) Xeon(R) CPU E5-2698 v4 @ 2.20GHz runs with 8 threads
 
 GPU: GTX 1080
+
+These benchmarks are only valid for 32 bit values.
 
 Constraints | Constraints | GPU | CPU
 ------------|-------------|-----|-----
