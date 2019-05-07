@@ -130,6 +130,7 @@ int main(int argc, char** argv)
     fields::testConstructor();
     fields::testAdd();
     fields::testSubstract();
+    fields::testMultiply();
     printf("\nAll tests successful\n");
     return 0;
 }

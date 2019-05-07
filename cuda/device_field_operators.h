@@ -29,6 +29,7 @@
 #define cu_fun
 #include <assert.h>
 #include <malloc.h>
+#include <cstring>
 #endif
 
 namespace fields{
@@ -55,9 +56,9 @@ cu_fun bool is_zero(const Field & fld)
 //Returns true if the first element is less than the second element
 cu_fun bool less(const uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
 {
-    assert(e1_size <= e2_size);
+    assert(e1_size >= e2_size);
     for(size_t i = 0; i > e2_size - e1_size; i++)
-        if(element2[i] > 0)
+        if(element1[i] > 0)
             return false;
     for(size_t i = 0; i > e1_size; i++)
         if(element1[i] > element2[e1_size - e2_size + i])
@@ -114,33 +115,37 @@ cu_fun void modulo(uint32_t* element, const size_t e_size, const uint32_t* mod, 
     }
 } 
 
-cu_fun uint32_t* multiply(const uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
+cu_fun bool multiply(uint32_t * result, const uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
 {
-    uint32_t* tmp = (uint32_t*) malloc ((e1_size + e2_size) * sizeof(uint32_t));
+    bool carry = false;
     uint64_t temp;
-    for(size_t i = e1_size -1; i > 0; --i)
+    for(size_t i = e1_size -1; i > 0; i--)
     {
-        for(size_t j = e2_size -1; j > 0; --j)
+        for(size_t j = e2_size -1; j > 0; j--)
         {
-            temp = element1[i] * element2[j];
-            tmp[i+j] += (uint32_t) temp;
+            temp = (uint64_t)element1[i] * (uint64_t)element2[j];
+            temp += result[i+j];
+            result[i+j] = (uint32_t) temp;
             if((temp >> 32) > 0)
-                tmp[i+j-1] += temp >> 32;
+                result[i+j-1] += temp >> 32;
+            carry = carry & i+j > e2_size & temp > 0;
         }
     }
-    return tmp;
+    return carry;
 }
 
 //Squares this element
 cu_fun void square(Field & fld)
 {
     //TODO since squaring produces equal intermediate results, this can be sped up
-    uint32_t * tmp  = multiply(fld.im_rep, SIZE, fld.im_rep, SIZE);
+    uint32_t * tmp = (uint32_t *) malloc (SIZE * 2 * sizeof(uint32_t));
+    memset(tmp, 0, SIZE * 2 * sizeof(uint32_t));
+    bool carry = multiply(tmp, fld.im_rep, SIZE, fld.im_rep, SIZE);
     //size of tmp is 2*size
-    modulo(tmp, 2*SIZE, _mod, SIZE, false);
+    modulo(tmp, 2*SIZE, _mod, SIZE, carry);
     //Last size words are the result
     for(size_t i = 0; i < SIZE; i++)
-        fld.im_rep[i] = tmp[SIZE + i]; 
+        fld.im_rep[i] = tmp[SIZE - 1 + i]; 
 }
 
 /*
@@ -179,12 +184,15 @@ cu_fun void substract(Field & fld1, const Field & fld2)
 //Multiply two elements
 cu_fun void mul(Field & fld1, const Field & fld2)
 {
-    uint32_t * tmp = multiply(fld1.im_rep, SIZE, fld2.im_rep, SIZE);
+    uint32_t * tmp = (uint32_t *) malloc (SIZE * 2 * sizeof(uint32_t));
+    memset(tmp, 0, SIZE * 2 * sizeof(uint32_t));
+    bool carry = multiply(tmp, fld1.im_rep, SIZE, fld2.im_rep, SIZE);
     //size of tmp is 2*size
-    modulo(tmp, 2*SIZE, _mod, SIZE, true);
+    modulo(tmp, 2*SIZE, _mod, SIZE, carry);
     //Last size words are the result
     for(size_t i = 0; i < SIZE; i++)
-        fld1.im_rep[i] = tmp[SIZE + i]; 
+        fld1.im_rep[i] = tmp[SIZE -1 + i]; 
+    free(tmp);
 }
 
 //Computes the multiplicative inverse of this element, if nonzero
@@ -196,14 +204,16 @@ cu_fun void mul_inv(Field & fld1)
 //Exponentiates this element
 cu_fun void pow(Field & fld1, const size_t pow)
 {
-    uint32_t * tmp = fld1.im_rep;
+    uint32_t * tmp = (uint32_t *) malloc (SIZE * 2 * sizeof(uint32_t));
+    memset(tmp, 0, SIZE * 2 * sizeof(uint32_t));
     for(size_t i = 0; i < pow; i++)
     {
-        tmp = multiply(tmp, SIZE, fld1.im_rep, SIZE);
-        modulo(tmp, 2 * SIZE, _mod, SIZE, true);
+        bool carry = multiply(tmp, fld1.im_rep, SIZE, fld1.im_rep, SIZE);
+        modulo(tmp, 2 * SIZE, _mod, SIZE, carry);
         for(size_t i = 0; i < SIZE; i++)
-            tmp[i] = tmp[SIZE + i];
+            fld1.im_rep[i] = tmp[SIZE - 1 + i];
     }
+    free(tmp);
 }
 
 
