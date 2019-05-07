@@ -26,15 +26,18 @@ namespace fields{
 
     void testAdd()
     {
+        printf("Addition test: ");
         fields::Field f1(1234);
         fields::Field f2(1234);
         fields::Field result(2468);
         add(f1,f2);
         testEquality(f1, result);
+        printf("successful\n");
     }
 
     void testSubstract()
     {
+        printf("Substraction test: ");
         fields::Field f1(1234);
         fields::Field f2(1234);
         substract(f1,f2);
@@ -42,18 +45,22 @@ namespace fields{
         fields::Field f3(1235);
         substract(f3, f2);
         testEquality(f3,fields::Field::one());
+        printf("successful\n");
     }
 
-    void testModulo()
+    void testModulo()   
     {
+        printf("Modulo test: ");
         fields::Field f1(uint32_t(0));
         fields::Field f2(1234);
         
         fields::Field f3();
+        printf("successful\n");
     }
 
     void testMultiply()
     {
+        printf("Multiply test: ");
         fields::Field f1(1234);
         fields::Field f2(1234);
         mul(f1, f2);
@@ -61,10 +68,12 @@ namespace fields{
         fields::Field f3(1234);
         square(f3);
         testEquality(f1, f3);
+        printf("successful\n");
     }
 
     void testPow()
     {
+        printf("POW test: ");
         fields::Field f1(2);
         pow(f1, 0);
         testEquality(f1, fields::Field::one());
@@ -77,11 +86,13 @@ namespace fields{
         fields::Field f3(1048576);
         pow(f2, 20);
         testEquality(f2, f3);
+        printf("successful\n");
 
     }
 
     void testConstructor()
     {
+        printf("Constructor test: ");
         fields::Field f3(1);
         testEquality(f3, fields::Field::one());
         fields::Field f4;
@@ -96,6 +107,7 @@ namespace fields{
         uint32_t tmp [SIZE] ={0,0,0,0,0,0,0,1234};
         fields::Field f6(tmp);
         testEquality(f6, f2);
+        printf("successful\n");
     }
 
     void setMod()
@@ -117,6 +129,7 @@ int main(int argc, char** argv)
     fields::setMod();
     fields::testConstructor();
     fields::testAdd();
+    fields::testSubstract();
     printf("\nAll tests successful\n");
     return 0;
 }

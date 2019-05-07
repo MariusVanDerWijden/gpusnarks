@@ -94,7 +94,7 @@ struct Field {
             {
                 printField(f1);
                 printField(f2);
-                assert(!"Missmatch");
+                assert(!"missmatch");
             }
     }
 #endif
