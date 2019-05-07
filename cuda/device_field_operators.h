@@ -204,11 +204,27 @@ cu_fun void mul_inv(Field & fld1)
 //Exponentiates this element
 cu_fun void pow(Field & fld1, const size_t pow)
 {
-    uint32_t * tmp = (uint32_t *) malloc (SIZE * 2 * sizeof(uint32_t));
-    memset(tmp, 0, SIZE * 2 * sizeof(uint32_t));
-    for(size_t i = 0; i < pow; i++)
+    if(pow == 0) 
     {
-        bool carry = multiply(tmp, fld1.im_rep, SIZE, fld1.im_rep, SIZE);
+        fld1 = Field::one();
+        return;
+    }
+
+    if(pow == 1)
+    {
+        return;
+    }
+
+    uint32_t * tmp = (uint32_t *) malloc (SIZE * 2 * sizeof(uint32_t));
+    uint32_t temp[SIZE];
+
+    for(size_t i = 0; i < SIZE; i++)
+        temp[i] = fld1.im_rep[i];
+
+    for(size_t i = 0; i < pow - 1; i++)
+    {
+        memset(tmp, 0, SIZE * 2 * sizeof(uint32_t));
+        bool carry = multiply(tmp, fld1.im_rep, SIZE, temp, SIZE);
         modulo(tmp, 2 * SIZE, _mod, SIZE, carry);
         for(size_t i = 0; i < SIZE; i++)
             fld1.im_rep[i] = tmp[SIZE - 1 + i];

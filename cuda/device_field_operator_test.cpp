@@ -48,16 +48,6 @@ namespace fields{
         printf("successful\n");
     }
 
-    void testModulo()   
-    {
-        printf("Modulo test: ");
-        fields::Field f1(uint32_t(0));
-        fields::Field f2(1234);
-        
-        fields::Field f3();
-        printf("successful\n");
-    }
-
     void testMultiply()
     {
         printf("Multiply test: ");
@@ -71,21 +61,31 @@ namespace fields{
         printf("successful\n");
     }
 
+    void testModulo()   
+    {
+        printf("Modulo test: ");
+        fields::Field f1(uint32_t(0));
+        fields::Field f2(1234);
+        
+        fields::Field f3();
+        printf("successful\n");
+    }
+
     void testPow()
     {
         printf("POW test: ");
         fields::Field f1(2);
         pow(f1, 0);
         testEquality(f1, fields::Field::one());
-        pow(f1, 2);
-        testEquality(f1, fields::Field(4));
-        pow(f1, 10);
-        testEquality(f1, fields::Field(1048576));
-
         fields::Field f2(2);
-        fields::Field f3(1048576);
-        pow(f2, 20);
-        testEquality(f2, f3);
+        pow(f2, 2);
+        testEquality(f2, fields::Field(4));
+        pow(f2, 10);
+        testEquality(f2, fields::Field(1048576));
+        fields::Field f3(2);
+        fields::Field f4(1048576);
+        pow(f3, 20);
+        testEquality(f3, f4);
         printf("successful\n");
 
     }
@@ -131,6 +131,7 @@ int main(int argc, char** argv)
     fields::testAdd();
     fields::testSubstract();
     fields::testMultiply();
+    fields::testPow();
     printf("\nAll tests successful\n");
     return 0;
 }
