@@ -192,12 +192,22 @@ namespace fields{
         mpz_init(a);
         mpz_init(b);
         mpz_init(mod);
-        mpz_set_ui(a, 1234);
-        mpz_set_ui(b, 1234);
         mpz_set_ui(mod, 4294967296);
-        fields::Field f1(1234);
-        fields::Field f2(1234);
-        compare(f1,f2,a,b,mod,0);
+        for(uint i = 0; i < 4294967295; i++)
+        {
+            for(uint k = 0; k < 4294967295; k++)
+            {
+                for(uint z = 0; z <= 3; z++ )
+                {
+                    mpz_set_ui(a, i);
+                    mpz_set_ui(b, k);
+                    fields::Field f1(i);
+                    fields::Field f2(k);
+                    compare(f1,f2,a,b,mod,z);
+                }
+            }
+        }
+        
         
     }
 }
