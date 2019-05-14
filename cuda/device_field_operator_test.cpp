@@ -21,6 +21,8 @@
 #include "device_field.h"
 #include "device_field_operators.h"
 #include <assert.h>
+#include <gmp.h>
+#include <iostream>
 
 namespace fields{
 
@@ -122,6 +124,82 @@ namespace fields{
         _mod[6] = 1;
         _mod[7] = 0;
     }
+
+    void operate(fields::Field & f1, fields::Field const f2, int const op)
+    {
+        switch(op){
+            case 0:
+                add(f1,f2); break;
+            case 1:
+                substract(f1,f2); break;
+            case 2:
+                mul(f1,f2); break;
+            case 3:
+                pow(f1,f2.im_rep[SIZE - 1]); break;
+            default: break;
+        } 
+    }
+
+    void operate(mpz_t mpz1, mpz_t const mpz2, mpz_t const mod, int const op)
+    {
+        switch(op){
+            case 0:
+                mpz_add(mpz1, mpz1, mpz2);
+                mpz_mod(mpz1, mpz1, mod);
+                break;
+            case 1:
+                mpz_sub(mpz1, mpz1, mpz2);
+                mpz_mod(mpz1, mpz1, mod); 
+                break;
+            case 2:
+                mpz_mul(mpz1, mpz1, mpz2);
+                mpz_mod(mpz1, mpz1, mod);
+                break;
+            case 3:
+                mpz_t pow;
+                mpz_init(pow);
+                mpz_set_ui(pow, 4294967295);
+                mpz_and(pow, mpz2, pow);
+                mpz_powm(mpz1, mpz1, pow, mod);
+                break;
+            default: break;
+        }
+    }
+
+    void toMPZ(mpz_t ret, fields::Field f)
+    {
+        mpz_init(ret);
+        mpz_import(ret, SIZE, 1, sizeof(uint32_t), 0, 0, f.im_rep);   
+    }
+
+    void compare(fields::Field f1, fields::Field f2, mpz_t mpz1, mpz_t mpz2, mpz_t mod, int op)
+    {
+        printField(f1);
+        printField(f2);
+        gmp_printf ("[%Zd] : [%Zd] : %d\n", mpz1, mpz2, op);
+        operate(f1, f2, op);
+        operate(mpz1, mpz2, mod, op);
+        mpz_t tmp;
+        toMPZ(tmp, f1);
+        
+        gmp_printf ("[%Zd] : [%Zd] \n", mpz1, tmp);
+        assert(mpz_cmp(tmp, mpz1) == 0);
+    }
+
+    void fuzzTest()
+    {
+        mpz_t a, b, mod;
+        mpz_init(a);
+        mpz_init(b);
+        mpz_init(mod);
+        mpz_set_ui(a, 1234);
+        mpz_set_ui(b, 1234);
+        mpz_set_ui(mod, 4294967296);
+        fields::Field f1(1234);
+        fields::Field f2(1234);
+        compare(f1,f2,a,b,mod,0);
+        
+    }
 }
 
 int main(int argc, char** argv)
@@ -132,6 +210,7 @@ int main(int argc, char** argv)
     fields::testSubstract();
     fields::testMultiply();
     fields::testPow();
+    fields::fuzzTest();
     printf("\nAll tests successful\n");
     return 0;
 }
