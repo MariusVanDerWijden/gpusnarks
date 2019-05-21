@@ -68,8 +68,9 @@ cu_fun bool less(const uint32_t* element1, const size_t e1_size, const uint32_t*
     return false;
 }
 
-//Returns the carry, true if there was a carry, false otherwise
-cu_fun bool add(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
+// Returns the carry, true if there was a carry, false otherwise
+// Takes a sign, true if negative
+cu_fun bool add(bool sign, uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
 {
     assert(e1_size >= e2_size);
     bool carry = false;
@@ -80,10 +81,10 @@ cu_fun bool add(uint32_t* element1, const size_t e1_size, const uint32_t* elemen
         element1[e1_size - i] = tmp + (uint64_t)element2[e1_size - i];
         carry = (tmp >> 32) > 0;
     }
-    return carry;
+    return sign? 0: carry;
 }
 
-//returns the carry, true if the resulting number is negative
+// Returns the carry, true if the resulting number is negative
 cu_fun bool substract(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
 {
     assert(e1_size >= e2_size);
@@ -100,19 +101,41 @@ cu_fun bool substract(uint32_t* element1, const size_t e1_size, const uint32_t* 
     return carry;
 }
 
+cu_fun void divide(uint32_t* element, const size_t e_size, const uint32_t* mod, const size_t mod_size, bool carry)
+{
+   // for(size_t i = 0; i <)
+}
+
 cu_fun void modulo(uint32_t* element, const size_t e_size, const uint32_t* mod, const size_t mod_size, bool carry)
 {
-    while(carry || less(element, e_size, mod, mod_size))
-    {
-        carry = substract(element, e_size, mod, mod_size);
+    printField(Field(element));
+    printField(Field(mod));
+    size_t shift = e_size;
+    uint32_t tmp [SIZE * 2];
+    memcpy(&tmp[0], element, e_size);
+    if(less(element, e_size, mod, mod_size))
+        return;
+
+    while(carry || !less(tmp, e_size + shift, mod, mod_size))
+    {   
+        carry = substract(tmp, e_size + shift, mod, mod_size);
         if(carry)
-            carry = add(element, e_size, mod, mod_size);
+            carry = add(carry, element + shift, e_size, mod, mod_size);
+        if(shift <= 0)
+            break;
+        else {
+            memcpy(&tmp[-(shift - e_size) + 1], tmp, e_size);
+            memset(&tmp[0], 0, -(shift - e_size));
+        }
+        shift--;
 #ifdef DEBUG
-        printField(Field(element));
+        printField(Field(tmp));
         printField(Field(mod));
-        assert(!"adsf");
+        //assert(!"adsf");
+        
 #endif
     }
+    memcpy(element, tmp, e_size);
 } 
 
 cu_fun bool multiply(uint32_t * result, const uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
@@ -170,7 +193,7 @@ cu_fun void negate(Field & fld)
 //Adds two elements
 cu_fun void add(Field & fld1, const Field & fld2)
 {
-    bool carry = add(fld1.im_rep, SIZE, fld2.im_rep, SIZE);
+    bool carry = add(false, fld1.im_rep, SIZE, fld2.im_rep, SIZE);
     modulo(fld1.im_rep, SIZE, _mod, SIZE, carry);
 }
 
