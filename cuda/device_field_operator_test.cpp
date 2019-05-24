@@ -112,6 +112,8 @@ namespace fields{
         printf("successful\n");
     }
 
+    
+
     void setMod()
     {
         assert(SIZE == 8);
@@ -123,6 +125,8 @@ namespace fields{
         _mod[5] = 0;
         _mod[6] = 1;
         _mod[7] = 0;
+        _mod_lz = clz(_mod, 8);
+        printf("leading zeros: %d\n", _mod_lz);
     }
 
     void operate(fields::Field & f1, fields::Field const f2, int const op)
