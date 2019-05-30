@@ -75,13 +75,14 @@ cu_fun uint32_t clz(const uint32_t* element, const size_t e_size)
 cu_fun bool less(const uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
 {
     assert(e1_size >= e2_size);
-    for(size_t i = 0; i > e2_size - e1_size; i++)
+    size_t diff = e1_size - e2_size;
+    for(size_t i = 0; i < diff; i++)
         if(element1[i] > 0)
             return false;
-    for(size_t i = 0; i > e1_size; i++)
-        if(element1[i] > element2[e1_size - e2_size + i])
+    for(size_t i = 0; i < e2_size; i++)
+        if(element1[i + diff] > element2[i])
             return false;
-        else if(element1[i] < element2[e1_size - e2_size + i])
+        else if(element1[i + diff] < element2[i])
             return true;
     return false;
 }
@@ -103,10 +104,9 @@ cu_fun bool add(bool sign, uint32_t* element1, const size_t e1_size, const uint3
 }
 
 // Returns the carry, true if the resulting number is negative
-cu_fun bool substract(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
+cu_fun bool substract(uint32_t* element1, const size_t e1_size, bool carry,  const uint32_t* element2, const size_t e2_size)
 {
     assert(e1_size >= e2_size);
-    bool carry = false;
     for(size_t i = 1; i <= e1_size; i++)
     {
         uint64_t tmp = (uint64_t)element1[e1_size - i];
@@ -119,11 +119,24 @@ cu_fun bool substract(uint32_t* element1, const size_t e1_size, const uint32_t* 
     return carry;
 }
 
-cu_fun void rem(uint32_t* element, const size_t e_size, bool carry, const uint32_t* mod, const size_t mod_size, uint32_t lz)
+cu_fun void rem(uint32_t* element, const size_t e_size, bool carry, const uint32_t* mod, const size_t mod_size, uint32_t lz_mod)
 {
-    uint32_t lz_element = clz(element, e_size);
-
-    //align to leading zeros (shift mod << by clz(mod))
+    uint32_t lz_element;
+    if(carry)
+        lz_element = 0;
+    else 
+        lz_element = clz(element, e_size);
+    uint32_t shift = lz_mod - lz_element; 
+    for(size_t i = shift; i > 0; i--)
+    {
+        for(size_t k = e_size -1; k > 0; k--)
+        {
+            uint64_t tmp;
+        }
+        
+        shift = lz_mod - clz(element, e_size);
+    }
+    //align to leading zeros (shift mod << by clz(mod) - clz(element))
     //substract if possible
     //if not
     //check if (shift == 0)
@@ -139,17 +152,18 @@ cu_fun void rem(uint32_t* element, const size_t e_size, bool carry, const uint32
 
 cu_fun void modulo(uint32_t* element, const size_t e_size, const uint32_t* mod, const size_t mod_size, bool carry)
 {
-    printField(Field(element));
     printField(Field(mod));
+    if(less(element, e_size, mod, mod_size))
+        return;
+    printf("tick");
+
     size_t shift = e_size;
     uint32_t tmp [SIZE * 2];
     memcpy(&tmp[0], element, e_size);
-    if(less(element, e_size, mod, mod_size))
-        return;
 
     while(carry || !less(tmp, e_size + shift, mod, mod_size))
     {   
-        carry = substract(tmp, e_size + shift, mod, mod_size);
+        carry = substract(tmp, e_size + shift, false, mod, mod_size);
         if(carry)
             carry = add(carry, element + shift, e_size, mod, mod_size);
         if(shift <= 0)
@@ -173,18 +187,21 @@ cu_fun bool multiply(uint32_t * result, const uint32_t* element1, const size_t e
 {
     bool carry = false;
     uint64_t temp;
-    for(size_t i = e1_size -1; i > 0; i--)
+    for(size_t i = 0; i < e2_size; i++)
     {
-        for(size_t j = e2_size -1; j > 0; j--)
+        uint32_t carry = 0;
+        for(size_t j = 0; j < e1_size; j++)
         {
-            temp = (uint64_t)element1[i] * (uint64_t)element2[j];
-            temp += result[i+j];
-            result[i+j] = (uint32_t) temp;
-            if((temp >> 32) > 0)
-                result[i+j-1] += temp >> 32;
-            carry = carry & i+j > e2_size & temp > 0;
+            temp = result[i+j + 1];
+            temp += (uint64_t)element1[j] * (uint64_t)element2[i];
+            temp += carry;
+            result[i+j + 1] = (uint32_t)temp;
+            carry = temp >> 32;
         }
+        result[i + e1_size + 1] = carry;
     }
+    printField(Field(result));
+    printField(Field(result +8));
     return carry;
 }
 
@@ -199,7 +216,7 @@ cu_fun void square(Field & fld)
     modulo(tmp, 2*SIZE, _mod, SIZE, carry);
     //Last size words are the result
     for(size_t i = 0; i < SIZE; i++)
-        fld.im_rep[i] = tmp[SIZE - 1 + i]; 
+        fld.im_rep[i] = tmp[SIZE + i]; 
 }
 
 /*
@@ -225,14 +242,16 @@ cu_fun void negate(Field & fld)
 cu_fun void add(Field & fld1, const Field & fld2)
 {
     bool carry = add(false, fld1.im_rep, SIZE, fld2.im_rep, SIZE);
-    modulo(fld1.im_rep, SIZE, _mod, SIZE, carry);
+    if(carry || less(_mod, SIZE, fld1.im_rep, SIZE))
+        substract(fld1.im_rep, SIZE, false, _mod, SIZE);
 }
 
 //Subtract element two from element one
 cu_fun void substract(Field & fld1, const Field & fld2)
 {
-    bool carry = substract(fld1.im_rep, SIZE, fld2.im_rep, SIZE);
-    modulo(fld1.im_rep, SIZE, _mod, SIZE, carry);
+    bool underflow = substract(fld1.im_rep, SIZE, false, fld2.im_rep, SIZE);
+    if(underflow)
+        add(true, fld1.im_rep, SIZE, _mod, SIZE);
 }
 
 //Multiply two elements
@@ -244,8 +263,12 @@ cu_fun void mul(Field & fld1, const Field & fld2)
     //size of tmp is 2*size
     modulo(tmp, 2*SIZE, _mod, SIZE, carry);
     //Last size words are the result
+    printf("tock\n");
+    printField(Field(tmp));
+    printField(Field(tmp +8));
     for(size_t i = 0; i < SIZE; i++)
-        fld1.im_rep[i] = tmp[SIZE -1 + i]; 
+        fld1.im_rep[i] = tmp[SIZE + i]; 
+    printField(fld1);
     free(tmp);
 }
 
@@ -281,7 +304,7 @@ cu_fun void pow(Field & fld1, const size_t pow)
         bool carry = multiply(tmp, fld1.im_rep, SIZE, temp, SIZE);
         modulo(tmp, 2 * SIZE, _mod, SIZE, carry);
         for(size_t i = 0; i < SIZE; i++)
-            fld1.im_rep[i] = tmp[SIZE - 1 + i];
+            fld1.im_rep[i] = tmp[SIZE + i];
     }
     free(tmp);
 }
