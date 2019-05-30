@@ -152,7 +152,6 @@ cu_fun void rem(uint32_t* element, const size_t e_size, bool carry, const uint32
 
 cu_fun void modulo(uint32_t* element, const size_t e_size, const uint32_t* mod, const size_t mod_size, bool carry)
 {
-    printField(Field(mod));
     if(less(element, e_size, mod, mod_size))
         return;
     printf("tick");
@@ -176,7 +175,7 @@ cu_fun void modulo(uint32_t* element, const size_t e_size, const uint32_t* mod, 
 #ifdef DEBUG
         printField(Field(tmp));
         printField(Field(mod));
-        //assert(!"adsf");
+        assert(!"adsf");
         
 #endif
     }
@@ -200,8 +199,6 @@ cu_fun bool multiply(uint32_t * result, const uint32_t* element1, const size_t e
         }
         result[i + e1_size + 1] = carry;
     }
-    printField(Field(result));
-    printField(Field(result +8));
     return carry;
 }
 
@@ -249,9 +246,9 @@ cu_fun void add(Field & fld1, const Field & fld2)
 //Subtract element two from element one
 cu_fun void substract(Field & fld1, const Field & fld2)
 {
-    bool underflow = substract(fld1.im_rep, SIZE, false, fld2.im_rep, SIZE);
-    if(underflow)
+    if(less(fld1.im_rep, SIZE, fld2.im_rep, SIZE))
         add(true, fld1.im_rep, SIZE, _mod, SIZE);
+    substract(fld1.im_rep, SIZE, false, fld2.im_rep, SIZE);
 }
 
 //Multiply two elements
@@ -263,9 +260,6 @@ cu_fun void mul(Field & fld1, const Field & fld2)
     //size of tmp is 2*size
     modulo(tmp, 2*SIZE, _mod, SIZE, carry);
     //Last size words are the result
-    printf("tock\n");
-    printField(Field(tmp));
-    printField(Field(tmp +8));
     for(size_t i = 0; i < SIZE; i++)
         fld1.im_rep[i] = tmp[SIZE + i]; 
     printField(fld1);
