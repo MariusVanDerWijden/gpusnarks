@@ -23,6 +23,7 @@
 #include <assert.h>
 #include <gmp.h>
 #include <iostream>
+#include <omp.h>
 
 namespace fields{
 
@@ -165,6 +166,7 @@ namespace fields{
                 mpz_set_ui(pow, 4294967295);
                 mpz_and(pow, mpz2, pow);
                 mpz_powm(mpz1, mpz1, pow, mod);
+                mpz_clear(pow);
                 break;
             default: break;
         }
@@ -178,40 +180,50 @@ namespace fields{
 
     void compare(fields::Field f1, fields::Field f2, mpz_t mpz1, mpz_t mpz2, mpz_t mod, int op)
     {
-        printField(f1);
-        printField(f2);
-        gmp_printf ("[%Zd] : [%Zd] : %d\n", mpz1, mpz2, op);
+        mpz_t tmp1;
+        mpz_init_set(tmp1, mpz1);
         operate(f1, f2, op);
         operate(mpz1, mpz2, mod, op);
         mpz_t tmp;
         toMPZ(tmp, f1);
-        
-        gmp_printf ("[%Zd] : [%Zd] \n", mpz1, tmp);
-        assert(mpz_cmp(tmp, mpz1) == 0);
+        if(mpz_cmp(tmp, mpz1) != 0){
+            gmp_printf ("t: %d [%Zd] : [%Zd] : %d\n",omp_get_thread_num(), tmp1, mpz2, op);
+            gmp_printf ("t: %d [%Zd] : [%Zd] \n",omp_get_thread_num() , mpz1, tmp);
+            assert(!"error");
+        }
+        mpz_clear(tmp1);
+        mpz_clear(tmp);
     }
 
     void fuzzTest()
     {
-        mpz_t a, b, mod;
-        mpz_init(a);
-        mpz_init(b);
-        mpz_init(mod);
-        mpz_set_ui(mod, 4294967296);
-        for(uint i = 0; i < 4294967295; i++)
+        printf("Fuzzing test: ");
+        
+        #pragma omp parallel for
+        for(size_t i = 0; i < 4294967295; i++)
         {
-            for(uint k = 0; k < 4294967295; k++)
+            printf("%zu \n", i);
+            mpz_t a, b, mod;
+            mpz_init(a);
+            mpz_init(b);
+            mpz_init(mod);
+            mpz_set_ui(mod, 4294967296);
+            mpz_set_ui(b, i);
+            fields::Field f2(i);
+            for(size_t k = 0; k < 4294967295; k++)
             {
-                for(uint z = 0; z <= 3; z++ )
+                for(size_t z = 0; z <= 3; z++ )
                 {
-                    mpz_set_ui(a, i);
-                    mpz_set_ui(b, k);
-                    fields::Field f1(i);
-                    fields::Field f2(k);
+                    mpz_set_ui(a, k);
+                    fields::Field f1(k);
                     compare(f1,f2,a,b,mod,z);
                 }
             }
+            mpz_clear(a);
+            mpz_clear(b);
+            mpz_clear(mod);
         }
-        
+        printf("successful\n");
         
     }
 }

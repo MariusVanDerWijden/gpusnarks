@@ -206,7 +206,7 @@ cu_fun bool multiply(uint32_t * result, const uint32_t* element1, const size_t e
 cu_fun void square(Field & fld)
 {
     //TODO since squaring produces equal intermediate results, this can be sped up
-    uint32_t * tmp = (uint32_t *) malloc (SIZE * 2 * sizeof(uint32_t));
+    uint32_t tmp[SIZE * 2];
     memset(tmp, 0, SIZE * 2 * sizeof(uint32_t));
     bool carry = multiply(tmp, fld.im_rep, SIZE, fld.im_rep, SIZE);
     //size of tmp is 2*size
@@ -254,16 +254,14 @@ cu_fun void substract(Field & fld1, const Field & fld2)
 //Multiply two elements
 cu_fun void mul(Field & fld1, const Field & fld2)
 {
-    uint32_t * tmp = (uint32_t *) malloc (SIZE * 2 * sizeof(uint32_t));
+    uint32_t tmp[SIZE * 2];
     memset(tmp, 0, SIZE * 2 * sizeof(uint32_t));
     bool carry = multiply(tmp, fld1.im_rep, SIZE, fld2.im_rep, SIZE);
     //size of tmp is 2*size
     modulo(tmp, 2*SIZE, _mod, SIZE, carry);
     //Last size words are the result
     for(size_t i = 0; i < SIZE; i++)
-        fld1.im_rep[i] = tmp[SIZE + i]; 
-    printField(fld1);
-    free(tmp);
+        fld1.im_rep[i] = tmp[SIZE + i];
 }
 
 //Computes the multiplicative inverse of this element, if nonzero
@@ -286,7 +284,7 @@ cu_fun void pow(Field & fld1, const size_t pow)
         return;
     }
 
-    uint32_t * tmp = (uint32_t *) malloc (SIZE * 2 * sizeof(uint32_t));
+    uint32_t tmp[SIZE * 2];
     uint32_t temp[SIZE];
 
     for(size_t i = 0; i < SIZE; i++)
@@ -300,7 +298,6 @@ cu_fun void pow(Field & fld1, const size_t pow)
         for(size_t i = 0; i < SIZE; i++)
             fld1.im_rep[i] = tmp[SIZE + i];
     }
-    free(tmp);
 }
 
 
