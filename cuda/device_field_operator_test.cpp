@@ -24,6 +24,8 @@
 #include <gmp.h>
 #include <iostream>
 #include <omp.h>
+#include <chrono>
+#include <ctime>  
 
 namespace fields{
 
@@ -140,7 +142,8 @@ namespace fields{
             case 2:
                 mul(f1,f2); break;
             case 3:
-                pow(f1,f2.im_rep[SIZE - 1]); break;
+                pow(f1, (f2.im_rep[SIZE - 1] & 65535)); 
+                break;
             default: break;
         } 
     }
@@ -163,7 +166,7 @@ namespace fields{
             case 3:
                 mpz_t pow;
                 mpz_init(pow);
-                mpz_set_ui(pow, 4294967295);
+                mpz_set_ui(pow, 65535);
                 mpz_and(pow, mpz2, pow);
                 mpz_powm(mpz1, mpz1, pow, mod);
                 mpz_clear(pow);
@@ -199,10 +202,19 @@ namespace fields{
     {
         printf("Fuzzing test: ");
         
+        size_t i_step = 12345671;
+        size_t k_step = 76543210;
+        auto start = std::chrono::system_clock::now();
+    
         #pragma omp parallel for
-        for(size_t i = 0; i < 4294967295; i++)
+        for(size_t i = 0; i < 4294967295; i = i + i_step)
         {
-            printf("%zu \n", i);
+            if(omp_get_thread_num() == 0){
+                auto end = std::chrono::system_clock::now();
+                std::chrono::duration<double> elapsed_seconds = end-start;
+
+                printf("%f%% %d sec \n", (float(i) / 4294967295) * omp_get_num_threads(), (int)elapsed_seconds.count());
+            }
             mpz_t a, b, mod;
             mpz_init(a);
             mpz_init(b);
@@ -210,7 +222,7 @@ namespace fields{
             mpz_set_ui(mod, 4294967296);
             mpz_set_ui(b, i);
             fields::Field f2(i);
-            for(size_t k = 0; k < 4294967295; k++)
+            for(size_t k = 0; k < 4294967295; k = k + k_step)
             {
                 for(size_t z = 0; z <= 3; z++ )
                 {
