@@ -53,24 +53,6 @@ cu_fun bool is_zero(const Field & fld)
     return true;
 }
 
-//Computes the amount of leading zeros of a field
-cu_fun uint32_t clz(const uint32_t* element, const size_t e_size)
-    {
-        uint32_t lz = 0;
-        uint32_t tmp;
-        for(size_t i = 0; i < e_size; i++)
-        {
-            if(element[i] == 0)
-                tmp = 32;
-            else
-                tmp = __builtin_clz(element[i]);
-            lz += tmp;
-            if(tmp < 32)
-                break;
-        }
-        return lz;
-    }
-
 //Returns true if the first element is less than the second element
 cu_fun bool less(const uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
 {
@@ -119,37 +101,6 @@ cu_fun bool substract(uint32_t* element1, const size_t e1_size, bool carry,  con
     return carry;
 }
 
-cu_fun void rem(uint32_t* element, const size_t e_size, bool carry, const uint32_t* mod, const size_t mod_size, uint32_t lz_mod)
-{
-    uint32_t lz_element;
-    if(carry)
-        lz_element = 0;
-    else 
-        lz_element = clz(element, e_size);
-    uint32_t shift = lz_mod - lz_element; 
-    for(size_t i = shift; i > 0; i--)
-    {
-        for(size_t k = e_size -1; k > 0; k--)
-        {
-            uint64_t tmp;
-        }
-        
-        shift = lz_mod - clz(element, e_size);
-    }
-    //align to leading zeros (shift mod << by clz(mod) - clz(element))
-    //substract if possible
-    //if not
-    //check if (shift == 0)
-    //if yes, return
-    // if not shift--
-
-    for(size_t i = 0; i < e_size; i++)
-    {
-        element[i] = element[i] /  mod[i];
-
-    }
-}
-
 cu_fun void ciosMontgomeryMultiply(uint32_t * result, 
 const uint32_t* a, const size_t a_size, 
 const uint32_t* b, const size_t b_size, 
@@ -186,7 +137,7 @@ const uint64_t m_prime)
         result[a_size - 1] = (uint32_t) temp;
         result[a_size] = result[a_size + 1] + temp >> 32;
     }
-    uint32_t t[a_size];
+    uint32_t t[SIZE];
     memcpy(t, result, a_size);
     int64_t stemp = 0;
     int carry = 0;

@@ -44,8 +44,6 @@ using size_t = decltype(sizeof 1ll);
 __constant__
 #endif
 uint32_t _mod [SIZE];
-//leading zeros of mod
-uint32_t _mod_lz;
 
 struct Field {
 	//Intermediate representation
