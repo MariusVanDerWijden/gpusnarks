@@ -150,36 +150,80 @@ cu_fun void rem(uint32_t* element, const size_t e_size, bool carry, const uint32
     }
 }
 
+cu_fun void ciosMontgomeryMultiply(uint32_t * result, 
+const uint32_t* a, const size_t a_size, 
+const uint32_t* b, const size_t b_size, 
+const uint32_t* n, const size_t n_size,
+const uint64_t m_prime)
+{
+    uint64_t temp;
+    for(size_t i = 0; i < a_size; i++)
+    {
+        uint32_t carry = 0;
+        for(size_t j = 0; j < a_size; j++)
+        {
+            temp = result[j];
+            temp += (uint64_t)a[j] * (uint64_t)b[i];
+            temp += carry;
+            result[j] = (uint32_t)temp;
+            carry = temp >> 32;
+        }
+        temp = result[a_size] + carry;
+        result[a_size] = (uint32_t) temp;
+        result[a_size + 1] = temp >> 32;
+        uint64_t m = (result[0] * m_prime) & 4294967296;
+        temp = result[0] + (uint64_t)m * n[0]; 
+        carry = temp >> 32;
+        for(size_t j = 0; j < a_size; j++)
+        {
+            temp = result[j];
+            temp += (uint64_t)m * (uint64_t)n[j];
+            temp += carry;
+            result[j - 1] = (uint32_t)temp;
+            carry = temp >> 32;
+        }
+        temp = result[a_size] + carry;
+        result[a_size - 1] = (uint32_t) temp;
+        result[a_size] = result[a_size + 1] + temp >> 32;
+    }
+    uint32_t t[a_size];
+    memcpy(t, result, a_size);
+    int64_t stemp = 0;
+    int carry = 0;
+    for(size_t i = 0; i < a_size; i++)
+    {
+        stemp = (int64_t)result[i];
+        stemp -= (int64_t)n[i];
+        stemp -= carry;
+        if(stemp < 0)
+        {
+            t[i] = (uint32_t) (stemp + 4294967296);
+            carry = 1;
+        }
+        else
+        {
+            t[i] = stemp;
+            carry = 0;
+        }
+    }
+    stemp = t[a_size] - carry;
+    t[a_size] = (uint32_t)stemp;
+    if(stemp < 0)
+        memcpy(result, t, a_size);
+}
+
 cu_fun void modulo(uint32_t* element, const size_t e_size, const uint32_t* mod, const size_t mod_size, bool carry)
 {
     if(less(element, e_size, mod, mod_size))
         return;
     printf("tick");
 
-    size_t shift = e_size;
-    uint32_t tmp [SIZE * 2];
-    memcpy(&tmp[0], element, e_size);
+    uint32_t tmp[SIZE * 2];
+    memset(tmp, 0, (SIZE * 2) * sizeof(uint32_t));
 
-    while(carry || !less(tmp, e_size + shift, mod, mod_size))
-    {   
-        carry = substract(tmp, e_size + shift, false, mod, mod_size);
-        if(carry)
-            carry = add(carry, element + shift, e_size, mod, mod_size);
-        if(shift <= 0)
-            break;
-        else {
-            memcpy(&tmp[-(shift - e_size) + 1], tmp, e_size);
-            memset(&tmp[0], 0, -(shift - e_size));
-        }
-        shift--;
-#ifdef DEBUG
-        printField(Field(tmp));
-        printField(Field(mod));
-        assert(!"adsf");
-        
-#endif
-    }
-    memcpy(element, tmp, e_size);
+    ciosMontgomeryMultiply(tmp + 1, Field::one().im_rep, SIZE, element, SIZE, _mod, SIZE, 4294967296L);
+    for(size_t i = 0; i < SIZE; i++)
+        element[i] = tmp[i];
 } 
 
 cu_fun bool multiply(uint32_t * result, const uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
@@ -255,19 +299,11 @@ cu_fun void substract(Field & fld1, const Field & fld2)
 cu_fun void mul(Field & fld1, const Field & fld2)
 {
     uint32_t tmp[SIZE * 2];
-    memset(tmp, 0, SIZE * 2 * sizeof(uint32_t));
-    bool carry = multiply(tmp, fld1.im_rep, SIZE, fld2.im_rep, SIZE);
-    //size of tmp is 2*size
-    modulo(tmp, 2*SIZE, _mod, SIZE, carry);
-    //Last size words are the result
+    memset(tmp, 0, (SIZE * 2) * sizeof(uint32_t));
+    
+    ciosMontgomeryMultiply(tmp + 1, fld1.im_rep, SIZE, fld2.im_rep, SIZE, _mod, SIZE, 4294967296L);
     for(size_t i = 0; i < SIZE; i++)
-        fld1.im_rep[i] = tmp[SIZE + i];
-}
-
-//Computes the multiplicative inverse of this element, if nonzero
-cu_fun void mul_inv(Field & fld1)
-{
-    //TODO implement
+        fld1.im_rep[i] = tmp[i];
 }
 
 //Exponentiates this element
@@ -292,13 +328,11 @@ cu_fun void pow(Field & fld1, const size_t pow)
 
     for(size_t i = 0; i < pow - 1; i++)
     {
-        memset(tmp, 0, SIZE * 2 * sizeof(uint32_t));
-        bool carry = multiply(tmp, fld1.im_rep, SIZE, temp, SIZE);
-        modulo(tmp, 2 * SIZE, _mod, SIZE, carry);
+        memset(tmp, 0, (SIZE * 2) * sizeof(uint32_t));
+        
+        ciosMontgomeryMultiply(tmp + 1, fld1.im_rep, SIZE, temp, SIZE, _mod, SIZE, 4294967296L);
         for(size_t i = 0; i < SIZE; i++)
-            fld1.im_rep[i] = tmp[SIZE + i];
+            fld1.im_rep[i] = tmp[i];
     }
 }
-
-
 }

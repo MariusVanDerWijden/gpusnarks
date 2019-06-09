@@ -60,9 +60,13 @@ namespace fields{
         fields::Field f2(1234);
         mul(f1, f2);
         testEquality(f1, fields::Field(1522756));
+        mul(f1, f2);
+        testEquality(f1, fields::Field(1879080904));
+        mul(f1, f2);
+        testEquality(f1, fields::Field(3798462992)); 
         fields::Field f3(1234);
         square(f3);
-        testEquality(f1, f3);
+        testEquality(f3, fields::Field(1522756));
         printf("successful\n");
     }
 
@@ -198,6 +202,24 @@ namespace fields{
         mpz_clear(tmp);
     }
 
+    void calculateModPrime()
+    {
+        mpz_t one, minus1, mod_prime, mod, base;
+        mpz_init(mod);
+        mpz_init(minus1);
+        mpz_init(mod_prime);
+        mpz_init(base);
+        mpz_init(one);
+        mpz_set_si(minus1, -1);
+        mpz_set_si(one, 1);
+        mpz_set_si(base, 4294967296);
+        mpz_set_ui(mod, 4294967296);
+        mpz_mul(mod_prime, minus1, mod);
+        mpz_div(mod_prime, one, mod_prime);
+        mpz_mod(mod_prime, mod_prime, base);
+        gmp_printf ("Mod_prime:  [%Zd] \n",mod_prime);        
+    }
+
     void fuzzTest()
     {
         printf("Fuzzing test: ");
@@ -236,12 +258,13 @@ namespace fields{
             mpz_clear(mod);
         }
         printf("successful\n");
-        
     }
 }
 
 int main(int argc, char** argv)
 {
+    //fields::calculateModPrime();
+    
     fields::setMod();
     fields::testConstructor();
     fields::testAdd();
