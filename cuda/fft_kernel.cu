@@ -76,7 +76,7 @@ template<typename FieldT>  __global__ void cuda_fft()
     memset(a, block_length,  0); 
 
     //TODO algorithm is non-deterministic because of padding
-
+    set_mod(omega<FieldT>);
     FieldT omega_j = omega<FieldT>;
     pow(omega_j, idx);
     FieldT omega_step = omega<FieldT>;
@@ -137,7 +137,7 @@ template<typename FieldT>  __global__ void cuda_fft()
                 mul(t, a[k+j+m]);
                 //const FieldT t = w * a[k+j+m];
                 FieldT tmp = a[k+j];
-                substract(tmp, t);
+                subtract(tmp, t);
                 a[k+j+m] = tmp;
                 //a[k+j+m] = a[k+j] - t;
                 add(a[k+j], t);

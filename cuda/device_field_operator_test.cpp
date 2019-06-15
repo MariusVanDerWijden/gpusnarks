@@ -40,15 +40,15 @@ namespace fields{
         printf("successful\n");
     }
 
-    void testSubstract()
+    void testsubtract()
     {
-        printf("Substraction test: ");
+        printf("subtraction test: ");
         fields::Field f1(1234);
         fields::Field f2(1234);
-        substract(f1,f2);
+        subtract(f1,f2);
         testEquality(f1, fields::Field::zero());
         fields::Field f3(1235);
-        substract(f3, f2);
+        subtract(f3, f2);
         testEquality(f3,fields::Field::one());
         printf("successful\n");
     }
@@ -132,7 +132,6 @@ namespace fields{
         _mod[5] = 0;
         _mod[6] = 1;
         _mod[7] = 0;
-        printf("leading zeros: %d\n", _mod_lz);
     }
 
     void operate(fields::Field & f1, fields::Field const f2, int const op)
@@ -141,7 +140,7 @@ namespace fields{
             case 0:
                 add(f1,f2); break;
             case 1:
-                substract(f1,f2); break;
+                subtract(f1,f2); break;
             case 2:
                 mul(f1,f2); break;
             case 3:
@@ -267,7 +266,7 @@ int main(int argc, char** argv)
     fields::setMod();
     fields::testConstructor();
     fields::testAdd();
-    fields::testSubstract();
+    fields::testsubtract();
     fields::testMultiply();
     fields::testPow();
     fields::fuzzTest();

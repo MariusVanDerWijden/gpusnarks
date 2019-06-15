@@ -34,8 +34,6 @@
 
 #define SIZE (256 / 32)
 
-
-
 namespace fields{
 
 using size_t = decltype(sizeof 1ll);

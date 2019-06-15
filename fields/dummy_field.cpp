@@ -78,7 +78,7 @@ void Field::add(Field & fld1, const Field & fld2)
 }
 
 //Subtract element two from element one
-void Field::substract(Field & fld1, const Field & fld2)
+void Field::subtract(Field & fld1, const Field & fld2)
 {
     fld1.im_rep -= fld2.im_rep;
 }

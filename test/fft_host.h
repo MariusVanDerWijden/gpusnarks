@@ -44,7 +44,7 @@ void _basic_serial_radix2_FFT(std::vector<FieldT> &a, const FieldT omega, const 
                 FieldT t = w;
                 FieldT::mul(w, a[k+j+m]);
                 a[k+j+m] = a[k+j];
-                FieldT::substract(a[k+j+m], t);
+                FieldT::subtract(a[k+j+m], t);
                 FieldT::add(a[k+j], t);
                 FieldT::mul(w, w_m);
             }

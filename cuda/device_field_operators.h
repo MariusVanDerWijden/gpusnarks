@@ -53,6 +53,12 @@ cu_fun bool is_zero(const Field & fld)
     return true;
 }
 
+cu_fun void set_mod(const Field& f)
+{
+    for(size_t i = 0; i < SIZE; i++)
+        _mod[i] = f.im_rep[i];
+}
+
 //Returns true if the first element is less than the second element
 cu_fun bool less(const uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
 {
@@ -86,7 +92,7 @@ cu_fun bool add(bool sign, uint32_t* element1, const size_t e1_size, const uint3
 }
 
 // Returns the carry, true if the resulting number is negative
-cu_fun bool substract(uint32_t* element1, const size_t e1_size, bool carry,  const uint32_t* element2, const size_t e2_size)
+cu_fun bool subtract(uint32_t* element1, const size_t e1_size, bool carry,  const uint32_t* element2, const size_t e2_size)
 {
     assert(e1_size >= e2_size);
     for(size_t i = 1; i <= e1_size; i++)
@@ -235,15 +241,15 @@ cu_fun void add(Field & fld1, const Field & fld2)
 {
     bool carry = add(false, fld1.im_rep, SIZE, fld2.im_rep, SIZE);
     if(carry || less(_mod, SIZE, fld1.im_rep, SIZE))
-        substract(fld1.im_rep, SIZE, false, _mod, SIZE);
+        subtract(fld1.im_rep, SIZE, false, _mod, SIZE);
 }
 
 //Subtract element two from element one
-cu_fun void substract(Field & fld1, const Field & fld2)
+cu_fun void subtract(Field & fld1, const Field & fld2)
 {
     if(less(fld1.im_rep, SIZE, fld2.im_rep, SIZE))
         add(true, fld1.im_rep, SIZE, _mod, SIZE);
-    substract(fld1.im_rep, SIZE, false, fld2.im_rep, SIZE);
+    subtract(fld1.im_rep, SIZE, false, fld2.im_rep, SIZE);
 }
 
 //Multiply two elements
