@@ -29,72 +29,74 @@
 
 namespace fields{
 
+    enum operand {add, substract, mul, pow};
+
     void testAdd()
     {
         printf("Addition test: ");
-        fields::Field f1(1234);
-        fields::Field f2(1234);
-        fields::Field result(2468);
-        add(f1,f2);
-        testEquality(f1, result);
+        fields::Scalar f1(1234);
+        fields::Scalar f2(1234);
+        fields::Scalar result(2468);
+        f1 =  f1 + f2;
+        Scalar::testEquality(f1, result);
         printf("successful\n");
     }
 
-    void testsubtract()
+    void test_subtract()
     {
-        printf("subtraction test: ");
-        fields::Field f1(1234);
-        fields::Field f2(1234);
-        subtract(f1,f2);
-        testEquality(f1, fields::Field::zero());
-        fields::Field f3(1235);
-        subtract(f3, f2);
-        testEquality(f3,fields::Field::one());
+        printf("_subtraction test: ");
+        fields::Scalar f1(1234);
+        fields::Scalar f2(1234);
+        f1 = f1 - f2;
+        Scalar::testEquality(f1, fields::Scalar::zero());
+        fields::Scalar f3(1235);
+        f3 = f3 - f2;
+        Scalar::testEquality(f3,fields::Scalar::one());
         printf("successful\n");
     }
 
     void testMultiply()
     {
         printf("Multiply test: ");
-        fields::Field f1(1234);
-        fields::Field f2(1234);
-        mul(f1, f2);
-        testEquality(f1, fields::Field(1522756));
-        mul(f1, f2);
-        testEquality(f1, fields::Field(1879080904));
-        mul(f1, f2);
-        testEquality(f1, fields::Field(3798462992)); 
-        fields::Field f3(1234);
-        square(f3);
-        testEquality(f3, fields::Field(1522756));
+        fields::Scalar f1(1234);
+        fields::Scalar f2(1234);
+        f1 = f1 * f2;
+        Scalar::testEquality(f1, fields::Scalar(1522756));
+        f1 = f1 * f2;
+        Scalar::testEquality(f1, fields::Scalar(1879080904));
+        f1 = f1 * f2;
+        Scalar::testEquality(f1, fields::Scalar(3798462992)); 
+        fields::Scalar f3(1234);
+        f3 = f3 * f3;
+        Scalar::testEquality(f3, fields::Scalar(1522756));
         printf("successful\n");
     }
 
     void testModulo()   
     {
         printf("Modulo test: ");
-        fields::Field f1(uint32_t(0));
-        fields::Field f2(1234);
+        fields::Scalar f1(uint32_t(0));
+        fields::Scalar f2(1234);
         
-        fields::Field f3();
+        fields::Scalar f3();
         printf("successful\n");
     }
 
     void testPow()
     {
-        printf("POW test: ");
-        fields::Field f1(2);
-        pow(f1, 0);
-        testEquality(f1, fields::Field::one());
-        fields::Field f2(2);
-        pow(f2, 2);
-        testEquality(f2, fields::Field(4));
-        pow(f2, 10);
-        testEquality(f2, fields::Field(1048576));
-        fields::Field f3(2);
-        fields::Field f4(1048576);
-        pow(f3, 20);
-        testEquality(f3, f4);
+        printf("Scalar::pow test: ");
+        fields::Scalar f1(2);
+        Scalar::pow(f1, 0);
+        Scalar::testEquality(f1, fields::Scalar::one());
+        fields::Scalar f2(2);
+        Scalar::pow(f2, 2);
+        Scalar::testEquality(f2, fields::Scalar(4));
+        Scalar::pow(f2, 10);
+        Scalar::testEquality(f2, fields::Scalar(1048576));
+        fields::Scalar f3(2);
+        fields::Scalar f4(1048576);
+        Scalar::pow(f3, 20);
+        Scalar::testEquality(f3, f4);
         printf("successful\n");
 
     }
@@ -102,20 +104,23 @@ namespace fields{
     void testConstructor()
     {
         printf("Constructor test: ");
-        fields::Field f3(1);
-        testEquality(f3, fields::Field::one());
-        fields::Field f4;
-        testEquality(f4, fields::Field::zero());
-        fields::Field f5(uint32_t(0));
-        testEquality(f5, fields::Field::zero());
+        fields::Scalar f3(1);
+        Scalar::testEquality(f3, fields::Scalar::one());
+        fields::Scalar f4;
+        Scalar::testEquality(f4, fields::Scalar::zero());
+        fields::Scalar f5(uint32_t(0));
+        Scalar::testEquality(f5, fields::Scalar::zero());
 
-        fields::Field f1;
-        fields::Field f2(1234);
-        add(f1, fields::Field(1234));
-        testEquality(f1, f2);
-        uint32_t tmp [SIZE] ={0,0,0,0,0,0,0,1234};
-        fields::Field f6(tmp);
-        testEquality(f6, f2);
+        fields::Scalar f1;
+        fields::Scalar f2(1234);
+        f1 = f1 +  fields::Scalar(1234);
+        Scalar::testEquality(f1, f2);
+        uint32_t tmp [SIZE];
+        for(int i = 0; i < SIZE; i++)
+            tmp[i] = 0;
+        tmp[SIZE -1 ] = 1234;
+        fields::Scalar f6(tmp);
+        Scalar::testEquality(f6, f2);
         printf("successful\n");
     }
 
@@ -123,28 +128,25 @@ namespace fields{
 
     void setMod()
     {
-        assert(SIZE == 8);
-        _mod[0] = 0;
-        _mod[1] = 0;
-        _mod[2] = 0;
-        _mod[3] = 0;
-        _mod[4] = 0;
-        _mod[5] = 0;
-        _mod[6] = 1;
-        _mod[7] = 0;
+        assert(SIZE == 24);
+        for(int i = 0; i < SIZE; i ++)
+        {
+            _mod[i] = 0;
+        }
+        _mod[SIZE - 2] = 1;
     }
 
-    void operate(fields::Field & f1, fields::Field const f2, int const op)
+    void operate(fields::Scalar & f1, fields::Scalar const f2, int const op)
     {
         switch(op){
             case 0:
-                add(f1,f2); break;
+                f1 = f1 + f2; break;
             case 1:
-                subtract(f1,f2); break;
+                f1 = f1 - f2; break;
             case 2:
-                mul(f1,f2); break;
+                f1 = f1 * f2; break;
             case 3:
-                pow(f1, (f2.im_rep[SIZE - 1] & 65535)); 
+                Scalar::pow(f1, (f2.im_rep[SIZE - 1] & 65535)); 
                 break;
             default: break;
         } 
@@ -177,13 +179,13 @@ namespace fields{
         }
     }
 
-    void toMPZ(mpz_t ret, fields::Field f)
+    void toMPZ(mpz_t ret, fields::Scalar f)
     {
         mpz_init(ret);
         mpz_import(ret, SIZE, 1, sizeof(uint32_t), 0, 0, f.im_rep);   
     }
 
-    void compare(fields::Field f1, fields::Field f2, mpz_t mpz1, mpz_t mpz2, mpz_t mod, int op)
+    void compare(fields::Scalar f1, fields::Scalar f2, mpz_t mpz1, mpz_t mpz2, mpz_t mod, int op)
     {
         mpz_t tmp1;
         mpz_init_set(tmp1, mpz1);
@@ -192,8 +194,10 @@ namespace fields{
         mpz_t tmp;
         toMPZ(tmp, f1);
         if(mpz_cmp(tmp, mpz1) != 0){
-            gmp_printf ("t: %d [%Zd] : [%Zd] : %d\n",omp_get_thread_num(), tmp1, mpz2, op);
-            gmp_printf ("t: %d [%Zd] : [%Zd] \n",omp_get_thread_num() , mpz1, tmp);
+            printf("Missmatch: ");
+            gmp_printf ("t: %d [%Zd] %d [%Zd] \n",omp_get_thread_num(), tmp1, op, mpz2);
+            gmp_printf ("t: %d CPU: [%Zd] GPU: [%Zd] \n",omp_get_thread_num() , mpz1, tmp);
+            Scalar::printScalar(f1);
             assert(!"error");
         }
         mpz_clear(tmp1);
@@ -241,13 +245,13 @@ namespace fields{
             mpz_init(mod);
             mpz_set_ui(mod, 4294967296);
             mpz_set_ui(b, i);
-            fields::Field f2(i);
+            fields::Scalar f2(i);
             for(size_t k = 0; k < 4294967295; k = k + k_step)
             {
                 for(size_t z = 0; z <= 3; z++ )
                 {
                     mpz_set_ui(a, k);
-                    fields::Field f1(k);
+                    fields::Scalar f1(k);
                     compare(f1,f2,a,b,mod,z);
                 }
             }
@@ -266,7 +270,7 @@ int main(int argc, char** argv)
     fields::setMod();
     fields::testConstructor();
     fields::testAdd();
-    fields::testsubtract();
+    fields::test_subtract();
     fields::testMultiply();
     fields::testPow();
     fields::fuzzTest();
