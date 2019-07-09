@@ -127,39 +127,22 @@ namespace fields{
     
 
     void setMod()
-    { /* 
-        assert(SIZE == 24);
-        _mod[0] = 115910;
-        _mod[1] = 764593169;
-        _mod[2] = 270700578; 
-        _mod[3] = 4007841197; 
-        _mod[4] = 3086587728;
-        _mod[5] = 1536143341;
-        _mod[6] = 1589111033;
-        _mod[7] = 1821890675;
-        _mod[8] = 134068517; 
-        _mod[9] = 3902860685;
-        _mod[10] = 2580620505;
-        _mod[11] = 2707093405;
-        _mod[12] = 2971133814;
-        _mod[13] = 4061660573;
-        _mod[14] = 3087994277;
-        _mod[15] = 3411246648;
-        _mod[16] = 1750781161;
-        _mod[17] = 1987204260;
-        _mod[18] = 1669861489;
-        _mod[19] = 2596546032;
-        _mod[20] = 3818738770;
-        _mod[21] = 752685471;
-        _mod[22] = 1586521054;
-        _mod[23] = 610172929; */
-
+    {  
+        assert(SIZE == 24); 
+        mpz_t n;
+        mpz_init(n);
+        mpz_set_str(n, "41898490967918953402344214791240637128170709919953949071783502921025352812571106773058893763790338921418070971888253786114353726529584385201591605722013126468931404347949840543007986327743462853720628051692141265303114721689601", 0);
+        size_t size = SIZE;
+        mpz_export(_mod, &size, 0, sizeof(_mod[0]), 0, 0, n);
+        mpz_import(n, size, 0, sizeof(_mod[0]), 0, 0, _mod);
+        gmp_printf ("Mod_prime:  [%Zd] \n",n);        
+        /*
         assert(SIZE == 24);
         for(int i = 0; i < SIZE; i ++)
         {
             _mod[i] = 0;
         }
-        _mod[SIZE - 3] = 1;
+        _mod[SIZE - 3] = 1;*/
     }
 
     void operate(fields::Scalar & f1, fields::Scalar const f2, int const op)
@@ -232,20 +215,30 @@ namespace fields{
 
     void calculateModPrime()
     {
-        mpz_t one, minus1, mod_prime, mod, base;
-        mpz_init(mod);
-        mpz_init(minus1);
-        mpz_init(mod_prime);
-        mpz_init(base);
+        mpz_t one, minus1, n_prime, n, m, mod, two;
         mpz_init(one);
+        mpz_init(minus1);
+        mpz_init(n_prime);
+        mpz_init(n);
+        mpz_init(m);
+        mpz_init(one);
+        mpz_init(mod);
+        mpz_init(two);
+
+        mpz_set_ui(two, 2);
+        mpz_set_str(n, "41898490967918953402344214791240637128170709919953949071783502921025352812571106773058893763790338921418070971888253786114353726529584385201591605722013126468931404347949840543007986327743462853720628051692141265303114721689601", 0);
+        uint exp = SIZE*32; //log2(n) rounded up
+        mpz_pow_ui(m, two, exp); //2^log2(n)
+
         mpz_set_si(minus1, -1);
-        mpz_set_si(one, 1);
-        mpz_set_si(base, 4294967296);
-        mpz_set_str(mod, "18446744073709551616", 0);
-        mpz_mul(mod_prime, minus1, mod);
-        mpz_div(mod_prime, one, mod_prime);
-        mpz_mod(mod_prime, mod_prime, base);
-        gmp_printf ("Mod_prime:  [%Zd] \n",mod_prime);        
+        int i = mpz_invert(n_prime, n, m); // n' = n^-1
+        uint32_t rop[SIZE];
+        uint32_t _mod[SIZE];
+        size_t size = SIZE;
+        mpz_export(rop, &size, 0, 32, 0, 0, n_prime);
+        mpz_export(_mod, &size, 0, 32, 0, 0, n);
+        gmp_printf ("Mod_prime:  [%Zd] %d %u %u %u \n",n_prime, i, rop[0], _mod[0], _mod[SIZE -1]);        
+        //36893488147419103231
     }
 
     void fuzzTest()
@@ -269,8 +262,8 @@ namespace fields{
             mpz_init(a);
             mpz_init(b);
             mpz_init(mod);
-            mpz_set_str(mod, "18446744073709551616", 0);
-            //mpz_set_str(mod, "41898490967918953402344214791240637128170709919953949071783502921025352812571106773058893763790338921418070971888253786114353726529584385201591605722013126468931404347949840543007986327743462853720628051692141265303114721689601", 0);
+            //mpz_set_str(mod, "18446744073709551616", 0);
+            mpz_set_str(mod, "41898490967918953402344214791240637128170709919953949071783502921025352812571106773058893763790338921418070971888253786114353726529584385201591605722013126468931404347949840543007986327743462853720628051692141265303114721689601", 0);
             mpz_set_ui(b, i);
             fields::Scalar f2(i);
             for(size_t k = 0; k < 4294967295; k = k + k_step)
