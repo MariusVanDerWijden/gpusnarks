@@ -1,0 +1,1 @@
+rm -f *.o && g++ -fopenmp -lgmp device_field_operator_test.cpp && ./a.out

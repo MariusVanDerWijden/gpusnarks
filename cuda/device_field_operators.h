@@ -123,11 +123,18 @@ cu_fun void _subtract(uint32_t* element1, const size_t e1_size, bool carry, cons
     bool borrow = false;
     for(size_t i = 1; i <= e1_size; i++)
     {
+        
+        uint64_t tmp = (uint64_t)element1[e1_size - i];
+        bool underflow = (tmp == 0) && (element2[e2_size - i] > 0 || borrow);
+        if(borrow) tmp--;
+        borrow = underflow || (tmp < element2[e2_size - i]);
+        if(borrow) tmp += ((uint64_t)1 << 33);
+        element1[e1_size - i] = tmp - element2[e2_size - i];/* 
         uint64_t tmp = (uint64_t)element1[e1_size - i];
         if(borrow) tmp--;
         borrow = (tmp < element2[e2_size - i]);
         if(borrow) tmp += ((uint64_t)1 << 33);
-        element1[e1_size - i] = tmp - element2[e2_size - i];
+        element1[e1_size - i] = tmp - element2[e2_size - i];*/
     }
     assert(carry == borrow);
 }
@@ -205,9 +212,13 @@ cu_fun void Scalar::add(Scalar & fld1, const Scalar & fld2) const
 cu_fun void Scalar::subtract(Scalar & fld1, const Scalar & fld2) const
 {
     bool carry = false;
+    printScalar(fld1);
+    printScalar(fld2);
     if(less(fld1.im_rep, SIZE, fld2.im_rep, SIZE))
         carry = _add(fld1.im_rep, SIZE, _mod, SIZE);
+    printScalar(fld1);
     _subtract(fld1.im_rep, SIZE, carry, fld2.im_rep, SIZE);
+    printScalar(fld1);
 }
 
 //Multiply two elements
