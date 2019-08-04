@@ -39,7 +39,7 @@
 #endif
 
 #define CHECK_BIT(var,pos) ((var) & (1<<(pos)))
-#define m_inv 4294967295L
+#define m_inv 1723983939L
 
 namespace fields{
 
@@ -156,9 +156,9 @@ const uint32_t* b, const uint32_t* n)
             result[j] = (uint32_t)temp;
             carry = temp >> 32;
         }
-        temp = result[a_size] + carry;
-        result[a_size] = (uint32_t) temp;
-        result[a_size + 1] = temp >> 32;
+        temp = result[a_size - 1] + carry;
+        result[a_size - 1] = (uint32_t) temp;
+        result[a_size] = temp >> 32;
         uint64_t m = ((uint64_t)result[0] * m_inv) % 4294967295;
         temp = result[0] + (uint64_t)m * n[0]; 
         carry = temp >> 32;
@@ -170,10 +170,10 @@ const uint32_t* b, const uint32_t* n)
             result[j - 1] = (uint32_t)temp;
             carry = temp >> 32;
         }
-        temp = result[a_size] + carry;
-        result[a_size - 1] = (uint32_t) temp;
-        result[a_size] = result[a_size + 1] + temp >> 32;
-    }/* 
+        temp = result[a_size -1] + carry;
+        result[a_size - 2] = (uint32_t) temp;
+        result[a_size - 1] = result[a_size] + temp >> 32;
+    }/*
     uint32_t u[SIZE + 1] = {0};
     memcpy(u, result, a_size + 1);
     int64_t stemp = 0;
@@ -200,6 +200,68 @@ const uint32_t* b, const uint32_t* n)
         memcpy(result, u, a_size);*/
 }
 
+/* 
+cu_fun void ciosMontgomeryMultiply(uint32_t * result, 
+const uint32_t* a, const size_t a_size, 
+const uint32_t* b, const uint32_t* n)
+{
+    uint64_t temp;
+    for(size_t i = 0; i < a_size; i++)
+    {
+        uint32_t carry = 0;
+        for(size_t j = 0; j < a_size; j++)
+        {
+            temp = result[j];
+            temp += (uint64_t)a[j] * (uint64_t)b[i];
+            temp += carry;
+            result[j] = (uint32_t)temp;
+            carry = temp >> 32;
+        }
+        temp = result[a_size - 1] + carry;
+        result[a_size - 1] = (uint32_t) temp;
+        result[a_size] = temp >> 32;
+        uint64_t m = ((uint64_t)result[0] * m_inv) % 4294967295;
+        temp = result[0] + (uint64_t)m * n[0]; 
+        carry = temp >> 32;
+        for(size_t j = 0; j < a_size; j++)
+        {
+            temp = result[j];
+            temp += (uint64_t)m * (uint64_t)n[j];
+            temp += carry;
+            result[j - 1] = (uint32_t)temp;
+            carry = temp >> 32;
+        }
+        temp = result[a_size -1] + carry;
+        result[a_size - 2] = (uint32_t) temp;
+        result[a_size - 1] = result[a_size] + temp >> 32;
+    }
+    uint32_t u[SIZE + 1] = {0};
+    memcpy(u, result, a_size + 1);
+    int64_t stemp = 0;
+    int carry = 0;
+    for(size_t i = 0; i < a_size; i++)
+    {
+        stemp = (int64_t)u[i];
+        stemp -= (int64_t)n[i];
+        stemp -= carry;
+        if(stemp < 0)
+        {
+            result[i] = (uint32_t) (stemp + 4294967296);
+            carry = 1;
+        }
+        else
+        {
+            result[i] = stemp;
+            carry = 0;
+        }
+    }
+    stemp = u[a_size] - carry;
+    u[a_size] = (uint32_t)stemp;
+    if(stemp < 0)
+        memcpy(result, u, a_size);
+}
+*/
+
 //Adds two elements
 cu_fun void Scalar::add(Scalar & fld1, const Scalar & fld2) const
 {
@@ -224,13 +286,13 @@ cu_fun void Scalar::subtract(Scalar & fld1, const Scalar & fld2) const
 //Multiply two elements
 cu_fun void Scalar::mul(Scalar & fld1, const Scalar & fld2) const
 {
-    uint32_t tmp[SIZE * 2] = {0};
+    uint32_t tmp[SIZE*2 + 2] = {0};
     
     ciosMontgomeryMultiply(tmp + 1, fld1.im_rep, SIZE, fld2.im_rep, _mod);
     for(size_t i = 0; i < SIZE; i++)
         fld1.im_rep[i] = tmp[i];
-    printScalar(Scalar(tmp + SIZE));
-    printScalar(Scalar(fld1));        
+    printScalar(Scalar(fld1));    
+    printScalar(Scalar(tmp + SIZE));    
 }
 
 //Exponentiates this element
