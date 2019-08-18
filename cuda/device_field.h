@@ -48,13 +48,19 @@ uint32_t _mod [SIZE] = {115910, 764593169, 270700578, 4007841197, 3086587728,
  2580620505, 2707093405, 2971133814, 4061660573, 3087994277, 
  3411246648, 1750781161, 1987204260, 1669861489, 2596546032, 
  3818738770, 752685471, 1586521054, 610172929};
+/*
+ uint32_t _mod [SIZE] = {3334734080, 298095149, 579871248, 2915951342, 
+ 1352137143, 3987705691, 4192778078, 1943574380, 632945927, 2381160680, 
+ 3643068825, 2650233505, 1994856369, 2634356978, 2769096632, 947803083, 
+ 3922483816, 2756997750, 1896908899, 4029007002, 1381277155, 2668748076, 
+ 3731066974, 25189924}; */
 
 struct Scalar {
 
     cu_fun void add(Scalar & fld1, const Scalar & fld2) const;
     cu_fun void mul(Scalar & fld1, const Scalar & fld2) const;
     cu_fun void subtract(Scalar & fld1, const Scalar & fld2) const;
-    cu_fun static void pow(Scalar & fld1, const size_t pow);
+    cu_fun void pow(Scalar & fld1, const uint32_t pow) const;
 
 	//Intermediate representation
 	uint32_t im_rep [SIZE] = {0};
@@ -133,6 +139,15 @@ struct Scalar {
         return s;
     }
 
+    cu_fun Scalar operator^(const uint32_t& rhs) const
+    {
+        Scalar s;
+        for(size_t i = 0; i < SIZE; i++)
+            s.im_rep[i] = this->im_rep[i];
+        pow(s, rhs);
+        return s;
+    }
+
     cu_fun Scalar square() const
     {
         Scalar s;
@@ -166,6 +181,7 @@ struct Scalar {
         for(size_t i = 0; i < SIZE; i++)
             if(f1.im_rep[i] != f2.im_rep[i])
             {
+                printf("Missmatch: \n");
                 printScalar(f1);
                 printScalar(f2);
                 assert(!"missmatch");

@@ -29,7 +29,144 @@
 
 namespace fields{
 
+    mpz_t R; 
+
     enum operand {add, substract, mul, pow};
+
+    void toMPZ(mpz_t ret, fields::Scalar f)
+    {
+        mpz_init(ret);
+        mpz_import(ret, SIZE, 1, sizeof(uint32_t), 0, 0, f.im_rep);   
+    }
+
+    void toScalar(fields::Scalar & f, mpz_t num)
+    {
+        size_t size = SIZE;
+        mpz_export(f.im_rep, &size, 1, sizeof(uint32_t), 0, 0, num);
+        // Reverse word order
+        for (int i = 0; i < SIZE / 2; i++) 
+        {
+            uint32_t tmp = f.im_rep[i];
+            f.im_rep[i] = f.im_rep[SIZE - i - 1];
+            f.im_rep[SIZE - i - 1] = tmp;
+        }
+    }
+
+    void calculateModPrime()
+    {
+        mpz_t one, minus1, n_prime, n, m, mod, two;
+        mpz_init(one);
+        mpz_init(minus1);
+        mpz_init(n_prime);
+        mpz_init(n);
+        mpz_init(m);
+        mpz_init(one);
+        mpz_init(mod);
+        mpz_init(two);
+
+        mpz_set_ui(two, 2);
+        mpz_set_ui(one, 1);
+        mpz_set_str(n, "41898490967918953402344214791240637128170709919953949071783502921025352812571106773058893763790338921418070971888253786114353726529584385201591605722013126468931404347949840543007986327743462853720628051692141265303114721689601", 0);
+        uint exp = SIZE*32; //log2(n) rounded up
+        mpz_pow_ui(m, two, exp); //2^log2(n)
+
+        mpz_set_si(minus1, -1);
+        int i = mpz_invert(n_prime, n, m); // n' = n^-1
+        uint32_t rop[SIZE];
+        uint32_t _mod[SIZE];
+        size_t size = SIZE;
+        mpz_export(rop, &size, 0, 32, 1, 0, n_prime);
+        mpz_export(_mod, &size, 0, 32, 1, 0, n);
+        gmp_printf ("Mod_prime:  [%Zd] %d %u %u %u \n",n_prime, i, rop[0], _mod[0], _mod[SIZE -1]);  
+        for(int i = 0; i < SIZE; i++) {
+            printf(" %u,", _mod[i]);
+        }
+        printf("\n");
+
+        mpz_mul(n, n, n_prime);
+        mpz_mod(n, n, m);
+
+        if(mpz_cmp(n, one) != 0){
+            printf("Missmatch: \n");
+            assert(!"error");
+        }
+
+        //R_SQUARE
+        //R = 2^(32*SIZE) = 2^768
+        mpz_t r_square;
+        mpz_init(r_square);
+        mpz_pow_ui(r_square, two, exp);
+        gmp_printf ("R_Square:  [%Zd] ",r_square);  
+        mpz_init(R);
+        mpz_set(R, r_square);
+
+        //Test a * r_square mod n
+        mpz_t a, base;
+        mpz_init(a);
+        mpz_init(base);
+        mpz_set_ui(base, 1760493831);
+        mpz_pow_ui(a, base, 24);
+        mpz_set_str(n, "41898490967918953402344214791240637128170709919953949071783502921025352812571106773058893763790338921418070971888253786114353726529584385201591605722013126468931404347949840543007986327743462853720628051692141265303114721689601", 0);
+        
+        mpz_mul(a, a, r_square);
+        mpz_mod(a, a, n);
+        gmp_printf ("_A:  [%Zd] ",a);  
+        
+        //36893488147419103231
+    }
+
+    void to_monty(fields::Scalar &f, const mpz_t mod)
+    {
+        mpz_t tmp;
+        toMPZ(tmp, f);
+        mpz_mul(tmp, tmp, R);
+        mpz_mod(tmp, tmp, mod);
+        toScalar(f, tmp);
+        mpz_clear(tmp);
+    }
+
+    void from_monty(fields::Scalar &f, const mpz_t mod)
+    {
+        f = f * Scalar(1);
+    }
+
+    void testEncodeDecode() {
+        for(size_t i = 1; i < 4294967295; i = i + 1234567)
+        {
+            // Test Encode/Decode
+            mpz_t a;
+            mpz_init(a);
+            mpz_set_ui(a, i);
+            fields::Scalar f(i);
+
+            mpz_t tmp;
+            toMPZ(tmp, f);
+            if(mpz_cmp(tmp, a) != 0){
+                printf("Encoding Error: \n");
+                assert(!"error");
+            }
+            Scalar s;
+            toScalar(s, tmp);
+            Scalar::testEquality(s,f);
+            mpz_clear(a);
+            mpz_clear(tmp);
+        }
+    }
+
+    void testMonty() 
+    {
+        mpz_t mod;
+        mpz_init(mod);
+        mpz_set_str(mod, "41898490967918953402344214791240637128170709919953949071783502921025352812571106773058893763790338921418070971888253786114353726529584385201591605722013126468931404347949840543007986327743462853720628051692141265303114721689601", 0);
+        for(size_t k = 1; k < 4294967295; k = k + 7654321)
+        { 
+            Scalar monty(k);
+            Scalar non_modified(k);
+            to_monty(monty, mod);
+            from_monty(monty, mod);
+            Scalar::testEquality(monty, non_modified);
+        }
+    }
 
     void testAdd()
     {
@@ -61,11 +198,11 @@ namespace fields{
         fields::Scalar f1(1234);
         fields::Scalar f2(1234);
         f1 = f1 * f2;
-        //Scalar::testEquality(f1, fields::Scalar(1522756));
+        Scalar::testEquality(f1, fields::Scalar(1522756));
         f1 = f1 * f2;
-        //Scalar::testEquality(f1, fields::Scalar(1879080904));
+        Scalar::testEquality(f1, fields::Scalar(1879080904));
         f1 = f1 * f2;
-        //Scalar::testEquality(f1, fields::Scalar(3798462992));
+        //Scalar::testEquality(f1, fields::Scalar(3798462992)); this is only valid in mod 2
         f1 = f1 * f1;
         //Scalar::testEquality(f1, fields::Scalar(14428321101593592064));  
         fields::Scalar f3(1234);
@@ -88,17 +225,22 @@ namespace fields{
     {
         printf("Scalar::pow test: ");
         fields::Scalar f1(2);
-        Scalar::pow(f1, 0);
+        f1 = f1 ^ 0;
         Scalar::testEquality(f1, fields::Scalar::one());
         fields::Scalar f2(2);
-        Scalar::pow(f2, 2);
+        f2 = f2 ^ 2;
         Scalar::testEquality(f2, fields::Scalar(4));
-        Scalar::pow(f2, 10);
+        f2 = f2 ^ 10;
         Scalar::testEquality(f2, fields::Scalar(1048576));
         fields::Scalar f3(2);
         fields::Scalar f4(1048576);
-        Scalar::pow(f3, 20);
+        f3 = f3 ^ 20;
         Scalar::testEquality(f3, f4);
+        fields::Scalar f5(2);
+        f5 = f5 ^ 35;
+        uint32_t tmp [SIZE] = {0};
+        tmp[SIZE -2] = 8;
+        Scalar::testEquality(f5, fields::Scalar(tmp));
         printf("successful\n");
 
     }
@@ -117,16 +259,12 @@ namespace fields{
         fields::Scalar f2(1234);
         f1 = f1 +  fields::Scalar(1234);
         Scalar::testEquality(f1, f2);
-        uint32_t tmp [SIZE];
-        for(int i = 0; i < SIZE; i++)
-            tmp[i] = 0;
-        tmp[SIZE -1 ] = 1234;
+        uint32_t tmp [SIZE] = {0};
+        tmp[SIZE -1] = 1234;
         fields::Scalar f6(tmp);
         Scalar::testEquality(f6, f2);
         printf("successful\n");
     }
-
-    
 
     void setMod()
     {  
@@ -137,17 +275,17 @@ namespace fields{
         size_t size = SIZE;
         mpz_export(_mod, &size, 0, sizeof(_mod[0]), 0, 0, n);
         mpz_import(n, size, 0, sizeof(_mod[0]), 0, 0, _mod);
-        //gmp_printf ("Mod_prime:  [%Zd] \n",n);        
-        /*
+        gmp_printf ("Mod:  [%Zd] \n",n);        
         assert(SIZE == 24);
         for(int i = 0; i < SIZE; i ++)
         {
-            _mod[i] = 0;
+            printf("%u , ", _mod[i]);
         }
-        _mod[SIZE - 3] = 1;*/
     }
 
-    void operate(fields::Scalar & f1, fields::Scalar const f2, int const op)
+    
+
+    void operate(fields::Scalar & f1, fields::Scalar f2, mpz_t const mod, int const op)
     {
         switch(op){
             case 0:
@@ -155,9 +293,13 @@ namespace fields{
             case 1:
                 f1 = f1 - f2; break;
             case 2:
-                f1 = f1 * f2; break;
+                to_monty(f1, mod);
+                to_monty(f2, mod);
+                f1 = f1 * f2; 
+                from_monty(f1, mod);
+                break;
             case 3:
-                Scalar::pow(f1, (f2.im_rep[SIZE - 1] & 65535)); 
+                f1 = f1 ^ (f2.im_rep[SIZE - 1] & 65535); 
                 break;
             default: break;
         } 
@@ -190,22 +332,16 @@ namespace fields{
         }
     }
 
-    void toMPZ(mpz_t ret, fields::Scalar f)
-    {
-        mpz_init(ret);
-        mpz_import(ret, SIZE, 1, sizeof(uint32_t), 0, 0, f.im_rep);   
-    }
-
     void compare(fields::Scalar f1, fields::Scalar f2, mpz_t mpz1, mpz_t mpz2, mpz_t mod, int op)
     {
         mpz_t tmp1;
         mpz_init_set(tmp1, mpz1);
-        operate(f1, f2, op);
+        operate(f1, f2, mod, op);
         operate(mpz1, mpz2, mod, op);
         mpz_t tmp;
         toMPZ(tmp, f1);
         if(mpz_cmp(tmp, mpz1) != 0){
-            printf("Missmatch: ");
+            printf("Missmatch: \n");
             gmp_printf ("t: %d [%Zd] %d [%Zd] \n",omp_get_thread_num(), tmp1, op, mpz2);
             gmp_printf ("t: %d CPU: [%Zd] GPU: [%Zd] \n",omp_get_thread_num() , mpz1, tmp);
             Scalar::printScalar(f1);
@@ -215,44 +351,17 @@ namespace fields{
         mpz_clear(tmp);
     }
 
-    void calculateModPrime()
-    {
-        mpz_t one, minus1, n_prime, n, m, mod, two;
-        mpz_init(one);
-        mpz_init(minus1);
-        mpz_init(n_prime);
-        mpz_init(n);
-        mpz_init(m);
-        mpz_init(one);
-        mpz_init(mod);
-        mpz_init(two);
-
-        mpz_set_ui(two, 2);
-        mpz_set_str(n, "41898490967918953402344214791240637128170709919953949071783502921025352812571106773058893763790338921418070971888253786114353726529584385201591605722013126468931404347949840543007986327743462853720628051692141265303114721689601", 0);
-        uint exp = SIZE*32; //log2(n) rounded up
-        mpz_pow_ui(m, two, exp); //2^log2(n)
-
-        mpz_set_si(minus1, -1);
-        int i = mpz_invert(n_prime, n, m); // n' = n^-1
-        uint32_t rop[SIZE];
-        uint32_t _mod[SIZE];
-        size_t size = SIZE;
-        mpz_export(rop, &size, 0, 32, 1, 0, n_prime);
-        mpz_export(_mod, &size, 0, 32, 1, 0, n);
-        gmp_printf ("Mod_prime:  [%Zd] %d %u %u %u \n",n_prime, i, rop[0], _mod[0], _mod[SIZE -1]);   
-        //36893488147419103231
-    }
-
     void fuzzTest()
     {
         printf("Fuzzing test: ");
         
         size_t i_step = 12345671;
         size_t k_step = 76543210;
+        size_t loop_start = 1;
         auto start = std::chrono::system_clock::now();
     
         //#pragma omp parallel for
-        for(size_t i = 0; i < 4294967295; i = i + i_step)
+        for(size_t i = loop_start; i < 4294967295; i = i + i_step)
         {
             if(omp_get_thread_num() == 0){
                 auto end = std::chrono::system_clock::now();
@@ -268,7 +377,7 @@ namespace fields{
             mpz_set_str(mod, "41898490967918953402344214791240637128170709919953949071783502921025352812571106773058893763790338921418070971888253786114353726529584385201591605722013126468931404347949840543007986327743462853720628051692141265303114721689601", 0);
             mpz_set_ui(b, i);
             fields::Scalar f2(i);
-            for(size_t k = 0; k < 4294967295; k = k + k_step)
+            for(size_t k = loop_start; k < 4294967295; k = k + k_step)
             {
                 for(size_t z = 0; z <= 3; z++ )
                 {
@@ -288,7 +397,8 @@ namespace fields{
 int main(int argc, char** argv)
 {
     fields::calculateModPrime();
-    
+    fields::testEncodeDecode();
+    fields::testMonty();
     fields::setMod();
     fields::testConstructor();
     fields::testAdd();
