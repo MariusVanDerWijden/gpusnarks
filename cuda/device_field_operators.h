@@ -218,6 +218,7 @@ const uint32_t* b, const uint32_t* n)
             result[i + j] = (uint32_t)temp;
             carry = temp >> 32;
         }
+        //TODO ADD() propagates the carry upwards
         uint64_t tmp = result[a_size - i - 1];
         tmp += carry;
         result[a_size - i - 1] = tmp;

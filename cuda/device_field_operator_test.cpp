@@ -30,6 +30,7 @@
 namespace fields{
 
     mpz_t R; 
+    mpz_t R_PRIME;
 
     enum operand {add, substract, mul, pow};
 
@@ -49,6 +50,62 @@ namespace fields{
             uint32_t tmp = f.im_rep[i];
             f.im_rep[i] = f.im_rep[SIZE - i - 1];
             f.im_rep[SIZE - i - 1] = tmp;
+        }
+    }
+
+    void extendedEuclidean(const mpz_t R, const mpz_t N, mpz_t R_PRIME, mpz_t N_PRIME)
+    {
+        mpz_init(R_PRIME);
+        mpz_init(N_PRIME);
+
+        mpz_t s, t, r, old_s, old_t, old_r, zero, quotient;
+        mpz_init(s); mpz_set_ui(s, 0);
+        mpz_init(t); mpz_set_ui(t, 1);
+        mpz_init(r); mpz_set(r, R);
+        mpz_init(old_s); mpz_set_ui(old_s, 1);
+        mpz_init(old_t); mpz_set_ui(old_t, 0);
+        mpz_init(old_r); mpz_set(old_r, N);
+        mpz_init(zero); mpz_set_ui(zero, 0);
+        mpz_init(quotient);
+       
+       while(mpz_cmp(r, zero) != 0) 
+        {
+            mpz_t tmp, multi;
+            mpz_init(tmp); mpz_init(multi);
+
+            mpz_div(quotient, old_r, r);
+            // (old_r, r) := (r, old_r - quotient * r)
+            mpz_set(tmp, r);
+            mpz_mul(multi, quotient, r);
+            mpz_sub(r, old_r, multi);
+            mpz_set(old_r, tmp);
+            // (old_s, s) := (s, old_s - quotient * s)
+            mpz_set(tmp, s);
+            mpz_mul(multi, quotient, s);
+            mpz_sub(s, old_s, multi);
+            mpz_set(old_s, tmp);
+            // (old_t, t) := (t, old_t - quotient * t)
+            mpz_set(tmp, t);
+            mpz_mul(multi, quotient, t);
+            mpz_sub(t, old_t, multi);
+            mpz_set(old_t, tmp);
+        }
+        mpz_set(N_PRIME, t);
+        mpz_set(R_PRIME, s);
+        
+        // Check correctness
+        mpz_t one, R_tmp, N_tmp;
+        mpz_init(one);
+        mpz_init(R_tmp);
+        mpz_init(N_tmp);
+        mpz_set_ui(one, 1);
+        mpz_mul(R_tmp, R, R_PRIME);
+        mpz_mul(N_tmp, N, N_PRIME);
+        mpz_sub(R_tmp, R_tmp, N_tmp);
+        if(mpz_cmp(R_tmp, one) != 0){
+            printf("Missmatch: \n");
+            gmp_printf ("R [%Zd] N  [%Zd] R_PRIME [%Zd] N_PRIME [%Zd] \n",R, N, R_PRIME, N_PRIME);  
+            assert(!"error");
         }
     }
 
@@ -100,6 +157,11 @@ namespace fields{
         mpz_init(R);
         mpz_set(R, r_square);
 
+        //R_PRIME 
+        mpz_t N_PRIME;
+        //TODO calculate R_PRIME and N_PRIME with extended euclidean
+        extendedEuclidean(R, n, R_PRIME, N_PRIME);
+
         //Test a * r_square mod n
         mpz_t a, base;
         mpz_init(a);
@@ -127,7 +189,10 @@ namespace fields{
 
     void from_monty(fields::Scalar &f, const mpz_t mod)
     {
-        f = f * Scalar(1);
+        mpz_t tmp;
+        toMPZ(tmp, f);
+        mpz_mul(tmp, tmp, R);
+        //f = f * Scalar(1);
     }
 
     void testEncodeDecode() {
