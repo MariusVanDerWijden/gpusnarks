@@ -53,62 +53,6 @@ namespace fields{
         }
     }
 
-    void extendedEuclidean(const mpz_t R, const mpz_t N, mpz_t R_PRIME, mpz_t N_PRIME)
-    {
-        mpz_init(R_PRIME);
-        mpz_init(N_PRIME);
-
-        mpz_t s, t, r, old_s, old_t, old_r, zero, quotient;
-        mpz_init(s); mpz_set_ui(s, 0);
-        mpz_init(t); mpz_set_ui(t, 1);
-        mpz_init(r); mpz_set(r, R);
-        mpz_init(old_s); mpz_set_ui(old_s, 1);
-        mpz_init(old_t); mpz_set_ui(old_t, 0);
-        mpz_init(old_r); mpz_set(old_r, N);
-        mpz_init(zero); mpz_set_ui(zero, 0);
-        mpz_init(quotient);
-       
-       while(mpz_cmp(r, zero) != 0) 
-        {
-            mpz_t tmp, multi;
-            mpz_init(tmp); mpz_init(multi);
-
-            mpz_div(quotient, old_r, r);
-            // (old_r, r) := (r, old_r - quotient * r)
-            mpz_set(tmp, r);
-            mpz_mul(multi, quotient, r);
-            mpz_sub(r, old_r, multi);
-            mpz_set(old_r, tmp);
-            // (old_s, s) := (s, old_s - quotient * s)
-            mpz_set(tmp, s);
-            mpz_mul(multi, quotient, s);
-            mpz_sub(s, old_s, multi);
-            mpz_set(old_s, tmp);
-            // (old_t, t) := (t, old_t - quotient * t)
-            mpz_set(tmp, t);
-            mpz_mul(multi, quotient, t);
-            mpz_sub(t, old_t, multi);
-            mpz_set(old_t, tmp);
-        }
-        mpz_set(N_PRIME, t);
-        mpz_set(R_PRIME, s);
-        
-        // Check correctness
-        mpz_t one, R_tmp, N_tmp;
-        mpz_init(one);
-        mpz_init(R_tmp);
-        mpz_init(N_tmp);
-        mpz_set_ui(one, 1);
-        mpz_mul(R_tmp, R, R_PRIME);
-        mpz_mul(N_tmp, N, N_PRIME);
-        mpz_sub(R_tmp, R_tmp, N_tmp);
-        if(mpz_cmp(R_tmp, one) != 0){
-            printf("Missmatch: \n");
-            gmp_printf ("R [%Zd] N  [%Zd] R_PRIME [%Zd] N_PRIME [%Zd] \n",R, N, R_PRIME, N_PRIME);  
-            assert(!"error");
-        }
-    }
-
     void calculateModPrime()
     {
         mpz_t one, minus1, n_prime, n, m, mod, two;
@@ -159,22 +103,22 @@ namespace fields{
 
         //R_PRIME 
         mpz_t N_PRIME;
+        mpz_init(N_PRIME);
         //TODO calculate R_PRIME and N_PRIME with extended euclidean
-        extendedEuclidean(R, n, R_PRIME, N_PRIME);
+        mpz_gcdext(one, N_PRIME, R_PRIME, n, R);
 
-        //Test a * r_square mod n
-        mpz_t a, base;
-        mpz_init(a);
-        mpz_init(base);
-        mpz_set_ui(base, 1760493831);
-        mpz_pow_ui(a, base, 24);
-        mpz_set_str(n, "41898490967918953402344214791240637128170709919953949071783502921025352812571106773058893763790338921418070971888253786114353726529584385201591605722013126468931404347949840543007986327743462853720628051692141265303114721689601", 0);
-        
-        mpz_mul(a, a, r_square);
-        mpz_mod(a, a, n);
-        gmp_printf ("_A:  [%Zd] ",a);  
-        
-        //36893488147419103231
+        // Check correctness
+        mpz_t R_tmp, N_tmp;
+        mpz_init(R_tmp);
+        mpz_init(N_tmp);
+        mpz_mul(R_tmp, R, R_PRIME);
+        mpz_mul(N_tmp, n, N_PRIME);
+        mpz_sub(R_tmp, N_tmp, R_tmp);
+        gmp_printf ("R [%Zd] N  [%Zd] R_PRIME [%Zd] N_PRIME [%Zd] TMP: [%Zd]\n",R, n, R_PRIME, N_PRIME, R_tmp); 
+        if(mpz_cmp(R_tmp, one) != 0){
+            printf("Missmatch: \n"); 
+            assert(!"error");
+        }
     }
 
     void to_monty(fields::Scalar &f, const mpz_t mod)
@@ -191,7 +135,8 @@ namespace fields{
     {
         mpz_t tmp;
         toMPZ(tmp, f);
-        mpz_mul(tmp, tmp, R);
+        mpz_mul(tmp, tmp, R_PRIME);
+        mpz_mod(tmp, tmp, mod);
         //f = f * Scalar(1);
     }
 
