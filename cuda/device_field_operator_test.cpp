@@ -43,7 +43,7 @@ namespace fields{
     void toScalar(fields::Scalar & f, mpz_t num)
     {
         size_t size = SIZE;
-        mpz_export(f.im_rep, &size, 1, sizeof(uint32_t), 0, 0, num);
+        mpz_export(f.im_rep, &size, -1, sizeof(uint32_t), 0, 0, num);
         // Reverse word order
         for (int i = 0; i < SIZE / 2; i++) 
         {
@@ -83,15 +83,22 @@ namespace fields{
             printf(" %u,", _mod[i]);
         }
         printf("\n");
-
-        mpz_mul(n, n, n_prime);
-        mpz_mod(n, n, m);
-
-        if(mpz_cmp(n, one) != 0){
-            printf("Missmatch: \n");
-            assert(!"error");
+        mpz_invert(R_PRIME, m, n); // n' = n^-1
+        
+        mpz_t R_tmp;
+        mpz_init(R_tmp);
+        mpz_mul(R_tmp, m, R_PRIME);
+        mpz_mod(R_tmp, R_tmp, n);
+        gmp_printf ("R_PRIME [%Zd] \n",R_PRIME); 
+        if(mpz_cmp(R_tmp, one) != 0){
+            gmp_printf ("R [%Zd] N  [%Zd] R_PRIME [%Zd] TMP: [%Zd]\n",m, n, R_PRIME, R_tmp); 
+            printf("Missmatch: \n"); 
+            assert(!"error2");
         }
+        mpz_init(R);
+        mpz_set(R, m);
 
+        /* 
         //R_SQUARE
         //R = 2^(32*SIZE) = 2^768
         mpz_t r_square;
@@ -106,6 +113,7 @@ namespace fields{
         mpz_init(N_PRIME);
         //TODO calculate R_PRIME and N_PRIME with extended euclidean
         mpz_gcdext(one, N_PRIME, R_PRIME, n, R);
+        //mpz_add(R_PRIME, R_PRIME, n);
 
         // Check correctness
         mpz_t R_tmp, N_tmp;
@@ -113,31 +121,51 @@ namespace fields{
         mpz_init(N_tmp);
         mpz_mul(R_tmp, R, R_PRIME);
         mpz_mul(N_tmp, n, N_PRIME);
-        mpz_sub(R_tmp, N_tmp, R_tmp);
+        mpz_sub(R_tmp, R_tmp, N_tmp);
         gmp_printf ("R [%Zd] N  [%Zd] R_PRIME [%Zd] N_PRIME [%Zd] TMP: [%Zd]\n",R, n, R_PRIME, N_PRIME, R_tmp); 
         if(mpz_cmp(R_tmp, one) != 0){
             printf("Missmatch: \n"); 
             assert(!"error");
         }
+        // (R * R') mod N === 1
+        mpz_mul(R_tmp, n, N_PRIME);
+        mpz_mod(R_tmp, R_tmp, R);
+        if(mpz_cmp(R_tmp, one) != 0){
+            gmp_printf ("R [%Zd] N  [%Zd] R_PRIME [%Zd] TMP: [%Zd]\n",R, n, R_PRIME, R_tmp); 
+            printf("Missmatch: \n"); 
+            assert(!"error2");
+        }
+        assert(!"successful");*/
     }
 
-    void to_monty(fields::Scalar &f, const mpz_t mod)
+    Scalar to_monty(fields::Scalar &f, const mpz_t mod)
     {
         mpz_t tmp;
         toMPZ(tmp, f);
         mpz_mul(tmp, tmp, R);
         mpz_mod(tmp, tmp, mod);
+        f = Scalar::zero();
         toScalar(f, tmp);
         mpz_clear(tmp);
+        return f;
     }
 
     void from_monty(fields::Scalar &f, const mpz_t mod)
     {
+        /* Works on CPU
         mpz_t tmp;
         toMPZ(tmp, f);
         mpz_mul(tmp, tmp, R_PRIME);
         mpz_mod(tmp, tmp, mod);
-        //f = f * Scalar(1);
+        f = Scalar::zero();
+        toScalar(f, tmp);
+        mpz_clear(tmp);*/
+        f = f * Scalar::one();
+        mpz_t tmp;
+        toMPZ(tmp, f);
+        mpz_mod(tmp, tmp, mod);
+        f = Scalar::zero();
+        toScalar(f, tmp);
     }
 
     void testEncodeDecode() {
@@ -148,7 +176,6 @@ namespace fields{
             mpz_init(a);
             mpz_set_ui(a, i);
             fields::Scalar f(i);
-
             mpz_t tmp;
             toMPZ(tmp, f);
             if(mpz_cmp(tmp, a) != 0){
@@ -165,6 +192,7 @@ namespace fields{
 
     void testMonty() 
     {
+        printf("Test monty: \n");
         mpz_t mod;
         mpz_init(mod);
         mpz_set_str(mod, "41898490967918953402344214791240637128170709919953949071783502921025352812571106773058893763790338921418070971888253786114353726529584385201591605722013126468931404347949840543007986327743462853720628051692141265303114721689601", 0);
@@ -172,7 +200,7 @@ namespace fields{
         { 
             Scalar monty(k);
             Scalar non_modified(k);
-            to_monty(monty, mod);
+            monty = to_monty(monty, mod);
             from_monty(monty, mod);
             Scalar::testEquality(monty, non_modified);
         }

@@ -39,8 +39,10 @@
 #endif
 
 #define CHECK_BIT(var,pos) ((var) & (1<<(pos)))
-#define m_inv 1723983939ULL
-//#define m_inv 4294967296L
+//#define m_inv 1723983939ULL
+#define m_inv 4294967296L
+//#define m_inv 1L
+//#define m_inv 85162L
 
 namespace fields{
 
@@ -224,8 +226,6 @@ const uint32_t* b, const uint32_t* n)
         result[a_size - i - 1] = tmp;
         assert(tmp >> 32 == 0);
     }
-    //bool msb = false;
-    //montyNormalize(result, a_size, msb); 
      
     uint32_t u[SIZE] = {0};
     for (int i = 0; i < SIZE; i++) 
@@ -304,7 +304,7 @@ cu_fun void Scalar::mul(Scalar & fld1, const Scalar & fld2) const
     sosMontgomeryMultiply(tmp + 1, fld1.im_rep, SIZE, fld2.im_rep, _mod);
     for(size_t i = 0; i < SIZE; i++)
         fld1.im_rep[i] = tmp[i + SIZE];
-    //printScalar(Scalar(fld1));     
+    printScalar(Scalar(fld1));     
     //printScalar(Scalar(tmp));   
 }
 
