@@ -15,7 +15,7 @@ typedef std::chrono::high_resolution_clock Clock;
 int main(void) 
 {
     size_t _size = 1 << 18;
-    std::vector<fields::Field> v1;
+    std::vector<fields::Scalar> v1;
     std::vector<dummy_fields::Field> v2;
 
     v1.reserve(_size);
@@ -23,7 +23,7 @@ int main(void)
 
     for(size_t i = 0; i < _size; i++)
     {
-    	v1.push_back(fields::Field(1234));
+    	v1.push_back(fields::Scalar(1234));
     	v2.push_back(dummy_fields::Field(1234));
     }
 
@@ -31,11 +31,11 @@ int main(void)
 
     {
         {
-        	printf("Field size: %d, Field count: %d\n", sizeof(fields::Field),v1.size());
+        	printf("Field size: %d, Field count: %d\n", sizeof(fields::Scalar),v1.size());
         	printf("A address: %p Last element: %d\n", &v1[0], v1[_size -1]);
             auto t1 = Clock::now();
-            best_fft<fields::Field>(v1, fields::Field(123));
-            //best_fft<fields::Field>(&v1[0], v1.size(), fields::Field(123));
+            best_fft<fields::Scalar>(v1, fields::Scalar(123));
+            //best_fft<fields::Scalar>(&v1[0], v1.size(), fields::Scalar(123));
             auto t2 = Clock::now();
             printf("Device FFT took %ld \n",
                 std::chrono::duration_cast<

@@ -221,8 +221,6 @@ cu_fun void Scalar::mul(Scalar & fld1, const Scalar & fld2) const
     //sosMontgomeryMultiply(tmp + 1, fld1.im_rep, SIZE, fld2.im_rep, _mod);
     for(size_t i = 0; i < SIZE; i++)
         fld1.im_rep[i] = tmp[i];
-    printScalar(Scalar(fld1));     
-    printScalar(Scalar(tmp));   
 }
 
 cu_fun void to_monty(Scalar & a) {

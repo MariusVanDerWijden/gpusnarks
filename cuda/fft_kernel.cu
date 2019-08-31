@@ -61,6 +61,11 @@ __device__ FieldT field[CONSTRAINTS];
 template<typename FieldT>
 __device__ FieldT out[CONSTRAINTS];
 
+__device__ uint32_t _mod [SIZE] = { 610172929, 1586521054, 752685471, 3818738770, 
+    2596546032, 1669861489, 1987204260, 1750781161, 3411246648, 3087994277, 
+    4061660573, 2971133814, 2707093405, 2580620505, 3902860685, 134068517, 
+    1821890675, 1589111033, 1536143341, 3086587728, 4007841197, 270700578, 764593169, 115910};
+
 template<typename FieldT>  __global__ void cuda_fft()
 {
     const int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -76,11 +81,10 @@ template<typename FieldT>  __global__ void cuda_fft()
     memset(a, block_length,  0); 
 
     //TODO algorithm is non-deterministic because of padding
-    set_mod(omega<FieldT>);
-    FieldT omega_j = omega<FieldT>;
-    pow(omega_j, idx);
+    FieldT omega_j = FieldT(_mod);
+    omega_j = omega_j ^ idx; // pow
     FieldT omega_step = omega<FieldT>;
-    pow(omega_step, idx << (log_m - LOG_NUM_THREADS));
+    omega_step = omega_step ^ idx << (log_m - LOG_NUM_THREADS);
     
     FieldT elt = one<FieldT>;
     for (size_t i = 0; i < 1ul<<(log_m - LOG_NUM_THREADS); ++i)
@@ -90,19 +94,14 @@ template<typename FieldT>  __global__ void cuda_fft()
             // invariant: elt is omega^(j*idx)
             size_t id = (i + (s<<(log_m - LOG_NUM_THREADS))) % (1u << log_m);
             FieldT tmp = field<FieldT>[id];
-            mul(tmp, elt);
-            add(a[i], tmp);
-            //a[i] += field<FieldT>[id] * elt;
-            mul(elt, omega_step);
-            //elt *= omega_step;
+            tmp = tmp * elt;
+            a[i] = a[i] + tmp;
+            elt = elt * omega_step;
         }
-        mul(elt, omega_j);
-        //elt *= omega_j;
+        elt = elt * omega_j;
     }
 
-    FieldT omega_num_cpus = omega<FieldT>;
-    pow(omega_num_cpus, NUM_THREADS);
-    //const FieldT omega_num_cpus = omega<FieldT> ^ NUM_THREADS;
+    const FieldT omega_num_cpus = omega<FieldT> ^ NUM_THREADS;
     
     //Do not remove log2f(n), otherwise register overflow
     size_t n = block_length, logn = log2f(n);
@@ -124,26 +123,17 @@ template<typename FieldT>  __global__ void cuda_fft()
     for (size_t s = 1; s <= logn; ++s)
     {
         // w_m is 2^s-th root of unity now
-        FieldT w_m = omega_num_cpus;
-        pow(w_m, n/2*m);
-        //const FieldT w_m = omega_num_cpus^(n/(2*m));
+        const FieldT w_m = omega_num_cpus^(n/(2*m));
 
         for (size_t k = 0; k < n; k += 2*m)
         {
             FieldT w = one<FieldT>;
             for (size_t j = 0; j < m; ++j)
             {
-                FieldT t = w;
-                mul(t, a[k+j+m]);
-                //const FieldT t = w * a[k+j+m];
-                FieldT tmp = a[k+j];
-                subtract(tmp, t);
-                a[k+j+m] = tmp;
-                //a[k+j+m] = a[k+j] - t;
-                add(a[k+j], t);
-                //a[k+j] += t;
-                mul(w, w_m);
-                //w *= w_m;
+                const FieldT t = w * a[k+j+m];
+                a[k+j+m] = a[k+j] - t;
+                a[k+j] = a[k+j] + t;
+                w = w * w_m;
             }
         }
         m = m << 1;
@@ -157,7 +147,6 @@ template<typename FieldT>  __global__ void cuda_fft()
 
 template<typename FieldT> 
 void best_fft (std::vector<FieldT> &a, const FieldT &omg)
-//void best_fft (FieldT *a, size_t _size, const FieldT &omg)
 {
 	int cnt;
     cudaGetDeviceCount(&cnt);
@@ -199,4 +188,4 @@ void best_fft (std::vector<FieldT> &a, const FieldT &omg)
 //List with all templates that should be generated
 //template void best_fft(std::vector<int> &a, const int &omg);
 //template void best_fft(fields::Field *v, size_t _size, const fields::Field &omg);
-template void best_fft(std::vector<fields::Field> &v, const fields::Field &omg);
+template void best_fft(std::vector<fields::Scalar> &v, const fields::Scalar &omg);
