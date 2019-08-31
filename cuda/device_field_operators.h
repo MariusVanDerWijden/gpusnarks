@@ -40,8 +40,9 @@
 
 #define CHECK_BIT(var,pos) ((var) & (1<<(pos)))
 //#define m_inv 1723983939ULL
-#define m_inv 4294967296L
+//#define m_inv 4294967296L
 //#define m_inv 1L
+#define m_inv 3334734080L
 //#define m_inv 85162L
 
 namespace fields{
@@ -155,6 +156,10 @@ cu_fun void ciosMontgomeryMultiply(uint32_t * result,
 const uint32_t* a, const size_t a_size, 
 const uint32_t* b, const uint32_t* n)
 {
+    for(int i = 0; i < a_size; i++)
+    {
+        result[i] = 0;
+    }
     uint64_t temp;
     for(size_t i = 0; i < a_size; i++)
     {
@@ -167,9 +172,9 @@ const uint32_t* b, const uint32_t* n)
             result[j] = (uint32_t)temp;
             carry = temp >> 32;
         }
-        temp = result[a_size - 1] + carry;
-        result[a_size - 1] = (uint32_t) temp;
-        result[a_size] = temp >> 32;
+        temp = result[a_size] + carry;
+        result[a_size] = (uint32_t) temp;
+        result[a_size + 1] = temp >> 32;
         uint64_t m = ((uint64_t)result[0] * m_inv) % 4294967296;
         temp = result[0] + (uint64_t)m * n[0]; 
         carry = temp >> 32;
@@ -181,75 +186,12 @@ const uint32_t* b, const uint32_t* n)
             result[j - 1] = (uint32_t)temp;
             carry = temp >> 32;
         }
-        temp = result[a_size -1] + carry;
-        result[a_size - 2] = (uint32_t) temp;
-        result[a_size - 1] = result[a_size] + temp >> 32;
+        temp = result[a_size] + carry;
+        result[a_size - 1] = (uint32_t) temp;
+        result[a_size] = result[a_size + 1] + temp >> 32;
     }
     bool msb = false;
-    montyNormalize(result, a_size, msb);
-}
-
-cu_fun void sosMontgomeryMultiply(uint32_t * result, 
-const uint32_t* a, const size_t a_size, 
-const uint32_t* b, const uint32_t* n)
-{
-    uint64_t temp;
-    for(int i = a_size - 1; i >= 0; i--)
-    {
-        uint64_t carry = 0;
-        for(int j = a_size - 1; j >= 0; j--)
-        {
-            temp = result[i + j];
-            temp += (uint64_t)a[j] * (uint64_t)b[i];
-            temp += carry;
-            result[i + j] = (uint32_t)temp;
-            carry = temp >> 32;
-        }
-        result[a_size - i - 1] = carry;
-    }
-
-    for(int i = a_size - 1; i >= 0; i--)
-    {
-        uint64_t carry = 0;
-        uint64_t m = ((uint64_t)result[i] * m_inv) % 1<<32;  
-        for(int j = a_size - 1; j >= 0; j--)
-        {
-            temp = result[i + j];
-            temp += m * (uint64_t)n[j];
-            temp += carry;
-            result[i + j] = (uint32_t)temp;
-            carry = temp >> 32;
-        }
-        //TODO ADD() propagates the carry upwards
-        uint64_t tmp = result[a_size - i - 1];
-        tmp += carry;
-        result[a_size - i - 1] = tmp;
-        assert(tmp >> 32 == 0);
-    }
-     
-    uint32_t u[SIZE] = {0};
-    for (int i = 0; i < SIZE; i++) 
-    {
-        u[i] = result[a_size + i - 1]; 
-    }
-    temp = 0;
-    uint64_t carry = 0;
-    for(int i = a_size - 1; i >= 0; i--)
-    {
-        temp = u[i];
-        temp -= (uint64_t)n[i];
-        temp -= carry;
-        result[i] = (uint32_t)temp;
-        carry = temp >> 32;
-    }
-    temp = u[0];
-    temp -= carry;
-    result[a_size - 1] = (uint32_t)temp;
-    carry = temp >> 32;
-    if (carry != 0)
-    {
-        memcpy(result + a_size - 1, u, a_size);
-    }
+    //montyNormalize(result, a_size, msb);
 }
 
 //Adds two elements
@@ -276,14 +218,14 @@ cu_fun void Scalar::subtract(Scalar & fld1, const Scalar & fld2) const
 //Multiply two elements
 cu_fun void Scalar::mul(Scalar & fld1, const Scalar & fld2) const
 {
-    uint32_t tmp[SIZE*2 + 2] = {0};
+    uint32_t tmp[SIZE + 3] = {0};
     
-    //ciosMontgomeryMultiply(tmp + 1, fld1.im_rep, SIZE, fld2.im_rep, _mod);
-    sosMontgomeryMultiply(tmp + 1, fld1.im_rep, SIZE, fld2.im_rep, _mod);
+    ciosMontgomeryMultiply(tmp, fld1.im_rep, SIZE, fld2.im_rep, _mod);
+    //sosMontgomeryMultiply(tmp + 1, fld1.im_rep, SIZE, fld2.im_rep, _mod);
     for(size_t i = 0; i < SIZE; i++)
-        fld1.im_rep[i] = tmp[i + SIZE];
+        fld1.im_rep[i] = tmp[i];
     printScalar(Scalar(fld1));     
-    //printScalar(Scalar(tmp));   
+    printScalar(Scalar(tmp));   
 }
 
 cu_fun void to_monty(Scalar & a) {
@@ -321,7 +263,7 @@ cu_fun void Scalar::pow(Scalar & fld1, const uint32_t pow) const
     for(size_t i = 0; i < pow - 1; i++)
     {
         memset(tmp, 0, (SIZE * 2) * sizeof(uint32_t));
-        sosMontgomeryMultiply(tmp + 1, fld1.im_rep, SIZE, temp, _mod);
+        //sosMontgomeryMultiply(tmp + 1, fld1.im_rep, SIZE, temp, _mod);
         for(size_t i = 0; i < SIZE; i++)
             fld1.im_rep[i] = tmp[i + SIZE];
         //printScalar(Scalar(fld1));

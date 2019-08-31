@@ -77,7 +77,7 @@ struct Scalar {
     cu_fun static Scalar one()
     {
         Scalar res;
-        res.im_rep[SIZE - 1] = 1;
+        res.im_rep[0] = 1;
         return res;
     }
     //Default constructor
@@ -85,7 +85,7 @@ struct Scalar {
     //Construct from value
     cu_fun Scalar(const uint32_t value)
     {
-        im_rep[SIZE - 1] = value;
+        im_rep[0] = value;
     }
 
     cu_fun Scalar(const uint32_t* value)
