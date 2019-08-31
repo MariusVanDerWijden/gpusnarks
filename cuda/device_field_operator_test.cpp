@@ -73,9 +73,10 @@ namespace fields{
         mpz_export(rop, &size, 0, 32, 1, 0, n_prime);
         mpz_export(_mod, &size, 0, 32, 1, 0, n);
         gmp_printf ("Mod_prime:  [%Zd] %d %u %u %u \n",n_prime, i, rop[0], _mod[0], _mod[SIZE -1]);  
-        for(int i = 0; i < SIZE; i++) {
-            printf(" %u,", _mod[i]);
-        }
+        
+        Scalar s;
+        toScalar(s, n_prime);
+        Scalar::printScalar(s);
         printf("\n");
         mpz_invert(R_PRIME, m, n); // r' = r^-1
         
@@ -136,8 +137,11 @@ namespace fields{
     {
         mpz_t tmp;
         toMPZ(tmp, f);
+        gmp_printf ("tmp0 [%Zd] \n",tmp); 
         mpz_mul(tmp, tmp, R);
+        gmp_printf ("tmp1 [%Zd] \n",tmp); 
         mpz_mod(tmp, tmp, mod);
+        gmp_printf ("tmp2 [%Zd] \n",tmp); 
         f = Scalar::zero();
         toScalar(f, tmp);
         mpz_clear(tmp);
@@ -146,6 +150,7 @@ namespace fields{
 
     void from_monty(fields::Scalar &f, const mpz_t mod)
     {
+        /* 
         // Works on CPU
         mpz_t tmp;
         toMPZ(tmp, f);
@@ -154,13 +159,17 @@ namespace fields{
         f = Scalar::zero();
         toScalar(f, tmp);
         mpz_clear(tmp);
-        /*
+        */
+        Scalar::printScalar(f);
         f = f * Scalar::one();
         mpz_t tmp;
         toMPZ(tmp, f);
+        gmp_printf ("tmp0 [%Zd] \n",tmp); 
+        mpz_sub(tmp, tmp, mod);
         mpz_mod(tmp, tmp, mod);
+        gmp_printf ("tmp1 [%Zd] \n",tmp); 
         f = Scalar::zero();
-        toScalar(f, tmp);*/
+        toScalar(f, tmp);
     }
 
     void testEncodeDecode() {
@@ -308,8 +317,9 @@ namespace fields{
         mpz_init(n);
         mpz_set_str(n, "41898490967918953402344214791240637128170709919953949071783502921025352812571106773058893763790338921418070971888253786114353726529584385201591605722013126468931404347949840543007986327743462853720628051692141265303114721689601", 0);
         size_t size = SIZE;
-        mpz_export(_mod, &size, 0, sizeof(_mod[0]), 0, 0, n);
-        mpz_import(n, size, 0, sizeof(_mod[0]), 0, 0, _mod);
+        Scalar s;
+        toScalar(s, n);
+        Scalar::printScalar(s);
         gmp_printf ("Mod:  [%Zd] \n",n);        
         assert(SIZE == 24);
         for(int i = 0; i < SIZE; i ++)
@@ -414,7 +424,7 @@ namespace fields{
             fields::Scalar f2(i);
             for(size_t k = loop_start; k < 4294967295; k = k + k_step)
             {
-                for(size_t z = 0; z <= 3; z++ )
+                for(size_t z = 0; z <= 1; z++ )
                 {
                     mpz_set_ui(a, k);
                     fields::Scalar f1(k);
@@ -438,8 +448,8 @@ int main(int argc, char** argv)
     fields::testConstructor();
     fields::testAdd();
     fields::test_subtract();
-    fields::testMultiply();
-    fields::testPow();
+    //fields::testMultiply();
+    //fields::testPow();
     fields::fuzzTest();
     printf("\nAll tests successful\n");
     return 0;

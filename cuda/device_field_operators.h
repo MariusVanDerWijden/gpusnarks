@@ -42,8 +42,9 @@
 //#define m_inv 1723983939ULL
 //#define m_inv 4294967296L
 //#define m_inv 1L
-#define m_inv 3334734080L
+//#define m_inv 463568897L
 //#define m_inv 85162L
+#define m_inv 1139327334L
 
 namespace fields{
 
@@ -98,12 +99,12 @@ cu_fun void set_mod(const Scalar& f)
 cu_fun bool less(const uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
 {
     assert(e1_size == e2_size);
-    for(size_t i = 0; i < SIZE; i++)
+    for(size_t i = e2_size - 1; i > 0; i--)
         if(element1[i] > element2[i])
             return false;
         else if(element1[i] < element2[i])
             return true;
-    return false;
+    return element1[0] < element2[0];
 }
 
 // Returns the carry, true if there was a carry, false otherwise
@@ -111,7 +112,7 @@ cu_fun bool _add(uint32_t* element1, const size_t e1_size, const uint32_t* eleme
 {
     assert(e1_size == e2_size);
     uint32_t carry = 0;
-    for(int i = e1_size - 1; i >= 0; i--)
+    for(int i = 0; i < e1_size; i++)
     {
         uint64_t tmp = (uint64_t)element1[i];
         tmp += carry;
@@ -127,7 +128,7 @@ cu_fun bool _subtract(uint32_t* element1, const size_t e1_size, bool carry, cons
 {
     assert(e1_size == e2_size);
     bool borrow = false;
-    for(int i = e1_size - 1; i >= 0; i--)
+    for(int i = 0; i < e1_size; i++)
     {
         uint64_t tmp = (uint64_t)element1[i];
         bool underflow = (tmp == 0) && (element2[i] > 0 || borrow);
@@ -172,13 +173,13 @@ const uint32_t* b, const uint32_t* n)
             result[j] = (uint32_t)temp;
             carry = temp >> 32;
         }
-        temp = result[a_size] + carry;
+        //temp = result[a_size] + carry;
         result[a_size] = (uint32_t) temp;
         result[a_size + 1] = temp >> 32;
-        uint64_t m = ((uint64_t)result[0] * m_inv) % 4294967296;
+        uint64_t m = ((uint64_t)result[0] * m_inv) % 4294967296L;
         temp = result[0] + (uint64_t)m * n[0]; 
         carry = temp >> 32;
-        for(size_t j = 0; j < a_size; j++)
+        for(size_t j = 1; j < a_size; j++)
         {
             temp = result[j];
             temp += (uint64_t)m * (uint64_t)n[j];
@@ -191,7 +192,7 @@ const uint32_t* b, const uint32_t* n)
         result[a_size] = result[a_size + 1] + temp >> 32;
     }
     bool msb = false;
-    //montyNormalize(result, a_size, msb);
+    montyNormalize(result, a_size, msb);
 }
 
 //Adds two elements
@@ -206,13 +207,9 @@ cu_fun void Scalar::add(Scalar & fld1, const Scalar & fld2) const
 cu_fun void Scalar::subtract(Scalar & fld1, const Scalar & fld2) const
 {
     bool carry = false;
-    //printScalar(fld1);
-    //printScalar(fld2);
     if(less(fld1.im_rep, SIZE, fld2.im_rep, SIZE))
         carry = _add(fld1.im_rep, SIZE, _mod, SIZE);
-    //printScalar(fld1);
     _subtract(fld1.im_rep, SIZE, carry, fld2.im_rep, SIZE);
-    //printScalar(fld1);
 }
 
 //Multiply two elements
