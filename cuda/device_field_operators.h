@@ -250,29 +250,7 @@ const uint32_t* b, const uint32_t* n)
     {
         memcpy(result + a_size - 1, u, a_size);
     }
- }
-
-/* 
-cu_fun void cios_monty(uint32_t * result, 
-const uint32_t* a, const size_t a_size, 
-const uint32_t* b, const uint32_t* n) 
-{
-    uint32_t temp[SIZE + 1] = {0};
-    mul(temp, a, m_inv);
-    mul(temp, temp, b);
-    
-    uint64_t carry = 0;
-    for(int i = 0; i < a_size; i++) 
-    {
-        uint64_t tmp = 0;
-        uint64_t ai = a[i];
-        uint64_t res0 = result[0];
-        uint64_t tempi = temp[i];
-        tmp = res0 + m_inv + tempi;
-        result[]
-
-    }
-}*/
+}
 
 //Adds two elements
 cu_fun void Scalar::add(Scalar & fld1, const Scalar & fld2) const
