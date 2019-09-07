@@ -8,6 +8,7 @@
 #include "fft_host.h"
 #include <cuda/fft_kernel.h>
 #include <cuda/device_field.h>
+#include <cuda/multi_exp.h>
 #include <fields/dummy_field.h>
 
 typedef std::chrono::high_resolution_clock Clock;
