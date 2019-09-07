@@ -173,7 +173,7 @@ const uint32_t* b, const uint32_t* n)
             result[j] = (uint32_t)temp;
             carry = temp >> 32;
         }
-        //temp = result[a_size] + carry;
+        temp = result[a_size] + carry;
         result[a_size] = (uint32_t) temp;
         result[a_size + 1] = temp >> 32;
         uint64_t m = ((uint64_t)result[0] * m_inv) % 4294967296L;
@@ -189,7 +189,7 @@ const uint32_t* b, const uint32_t* n)
         }
         temp = result[a_size] + carry;
         result[a_size - 1] = (uint32_t) temp;
-        result[a_size] = result[a_size + 1] + temp >> 32;
+        result[a_size] = temp >> 32;//result[a_size + 1] + temp >> 32;
     }
     bool msb = false;
     montyNormalize(result, a_size, msb);
@@ -247,7 +247,7 @@ cu_fun void Scalar::pow(Scalar & fld1, const uint32_t pow) const
         return;
     }
 
-    uint32_t tmp[SIZE * 2 + 1];
+    uint32_t tmp[SIZE + 2];
     uint32_t temp[SIZE];
 
     to_monty(fld1);
@@ -257,8 +257,8 @@ cu_fun void Scalar::pow(Scalar & fld1, const uint32_t pow) const
 
     for(size_t i = 0; i < pow - 1; i++)
     {
-        memset(tmp, 0, (SIZE * 2) * sizeof(uint32_t));
-        //sosMontgomeryMultiply(tmp + 1, fld1.im_rep, SIZE, temp, _mod);
+        memset(tmp, 0, (SIZE + 2) * sizeof(uint32_t));
+        //sosMontgomeryMultiply(tmp, fld1.im_rep, SIZE, temp, _mod);
         for(size_t i = 0; i < SIZE; i++)
             fld1.im_rep[i] = tmp[i + SIZE];
         //printScalar(Scalar(fld1));
