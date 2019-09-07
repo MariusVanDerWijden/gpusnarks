@@ -157,10 +157,6 @@ cu_fun void ciosMontgomeryMultiply(uint32_t * result,
 const uint32_t* a, const size_t a_size, 
 const uint32_t* b, const uint32_t* n)
 {
-    for(int i = 0; i < a_size; i++)
-    {
-        result[i] = 0;
-    }
     uint64_t temp;
     for(size_t i = 0; i < a_size; i++)
     {
@@ -176,8 +172,8 @@ const uint32_t* b, const uint32_t* n)
         temp = result[a_size] + carry;
         result[a_size] = (uint32_t) temp;
         result[a_size + 1] = temp >> 32;
-        uint64_t m = ((uint64_t)result[0] * m_inv) % 4294967296L;
-        temp = result[0] + (uint64_t)m * n[0]; 
+        uint32_t m = (uint32_t)((uint64_t)result[0] * m_inv);
+        temp = result[0] + (uint64_t)m * (uint64_t)n[0]; 
         carry = temp >> 32;
         for(size_t j = 1; j < a_size; j++)
         {
@@ -189,7 +185,7 @@ const uint32_t* b, const uint32_t* n)
         }
         temp = result[a_size] + carry;
         result[a_size - 1] = (uint32_t) temp;
-        result[a_size] = temp >> 32;//result[a_size + 1] + temp >> 32;
+        result[a_size] = temp >> 32;
     }
     bool msb = false;
     montyNormalize(result, a_size, msb);
