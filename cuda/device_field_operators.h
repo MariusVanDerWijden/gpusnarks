@@ -143,13 +143,13 @@ cu_fun bool _subtract(uint32_t* element1, const size_t e1_size, bool carry, cons
 
 cu_fun void montyNormalize(uint32_t * result, const size_t a_size, const bool msb) 
 {
-    uint32_t u[SIZE + 1] = {0};
-    memcpy(u, result, a_size + 1);
+    uint32_t u[SIZE] = {0};
+    memcpy(u, result, a_size);
     bool borrow = _subtract(u, SIZE, false, _mod, SIZE);
     if(msb || !borrow) 
     {
         assert(!msb || msb == borrow);
-        memcpy(result, u, a_size + 1);
+        memcpy(result, u, a_size);
     }
 }
 
@@ -187,7 +187,7 @@ const uint32_t* b, const uint32_t* n)
         result[a_size - 1] = (uint32_t) temp;
         result[a_size] = temp >> 32;
     }
-    bool msb = false;
+    bool msb = result[a_size] > 0 ;
     montyNormalize(result, a_size, msb);
 }
 
@@ -254,9 +254,9 @@ cu_fun void Scalar::pow(Scalar & fld1, const uint32_t pow) const
     for(size_t i = 0; i < pow - 1; i++)
     {
         memset(tmp, 0, (SIZE + 2) * sizeof(uint32_t));
-        //sosMontgomeryMultiply(tmp, fld1.im_rep, SIZE, temp, _mod);
+        ciosMontgomeryMultiply(tmp, fld1.im_rep, SIZE, temp, _mod);
         for(size_t i = 0; i < SIZE; i++)
-            fld1.im_rep[i] = tmp[i + SIZE];
+            fld1.im_rep[i] = tmp[i];
         //printScalar(Scalar(fld1));
         // Do not delete this, otherwise invalid compiler optimization
         //printScalar(Scalar(temp));
