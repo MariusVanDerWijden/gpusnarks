@@ -23,7 +23,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
-#define cu_fun __host__ __device__ 
+#define cu_fun __host__ __device__
 #else
 
 #define cu_fun
@@ -34,16 +34,17 @@
 
 #define SIZE (768 / 32)
 
-namespace fields{
+namespace fields
+{
 
 using size_t = decltype(sizeof 1ll);
 
 #ifndef DEBUG
 __constant__
 #endif
-//decimal representation of mod
+    //decimal representation of mod
 
-/*
+    /*
 // mod for normal representation
 uint32_t _mod [SIZE] = {115910, 764593169, 270700578, 4007841197, 3086587728, 
  1536143341, 1589111033, 1821890675, 134068517, 3902860685, 
@@ -57,26 +58,27 @@ uint32_t _mod [SIZE] = {115910, 764593169, 270700578, 4007841197, 3086587728,
  3922483816, 2756997750, 1896908899, 4029007002, 1381277155, 2668748076, 
  3731066974, 25189924}; */
 
-//_mod for inverted representation
-uint32_t _mod [SIZE] = { 610172929, 1586521054, 752685471, 3818738770, 
-2596546032, 1669861489, 1987204260, 1750781161, 3411246648, 3087994277, 
-4061660573, 2971133814, 2707093405, 2580620505, 3902860685, 134068517, 
-1821890675, 1589111033, 1536143341, 3086587728, 4007841197, 270700578, 764593169, 115910};
+    //_mod for inverted representation
+    uint32_t _mod[SIZE] = {610172929, 1586521054, 752685471, 3818738770,
+                           2596546032, 1669861489, 1987204260, 1750781161, 3411246648, 3087994277,
+                           4061660573, 2971133814, 2707093405, 2580620505, 3902860685, 134068517,
+                           1821890675, 1589111033, 1536143341, 3086587728, 4007841197, 270700578, 764593169, 115910};
 
-struct Scalar {
+struct Scalar
+{
 
-    cu_fun void add(Scalar & fld1, const Scalar & fld2) const;
-    cu_fun void mul(Scalar & fld1, const Scalar & fld2) const;
-    cu_fun void subtract(Scalar & fld1, const Scalar & fld2) const;
-    cu_fun void pow(Scalar & fld1, const uint32_t pow) const;
+    cu_fun void add(Scalar &fld1, const Scalar &fld2) const;
+    cu_fun void mul(Scalar &fld1, const Scalar &fld2) const;
+    cu_fun void subtract(Scalar &fld1, const Scalar &fld2) const;
+    cu_fun void pow(Scalar &fld1, const uint32_t pow) const;
 
-	//Intermediate representation
-	uint32_t im_rep [SIZE] = {0};
+    //Intermediate representation
+    uint32_t im_rep[SIZE] = {0};
     //Returns zero element
     cu_fun static Scalar zero()
     {
         Scalar res;
-        for(size_t i = 0; i < SIZE; i++)
+        for (size_t i = 0; i < SIZE; i++)
             res.im_rep[i] = 0;
         return res;
     }
@@ -89,50 +91,50 @@ struct Scalar {
         return res;
     }
     //Default constructor
-    Scalar() = default;
+    cu_fun Scalar() = default;
     //Construct from value
     cu_fun Scalar(const uint32_t value)
     {
         im_rep[0] = value;
     }
 
-    cu_fun Scalar(const uint32_t* value)
+    cu_fun Scalar(const uint32_t *value)
     {
-        for(size_t i = 0; i < SIZE; i++)
+        for (size_t i = 0; i < SIZE; i++)
             im_rep[i] = value[i];
     }
 
     //Returns true iff this element is zero
     cu_fun bool is_zero() const
     {
-        for(size_t i = 0; i < SIZE; i++)
-            if(this->im_rep[i] != 0)
+        for (size_t i = 0; i < SIZE; i++)
+            if (this->im_rep[i] != 0)
                 return false;
         return true;
     }
 
-    cu_fun Scalar operator*(const Scalar& rhs) const
+    cu_fun Scalar operator*(const Scalar &rhs) const
     {
         Scalar s;
-        for(size_t i = 0; i < SIZE; i++)
+        for (size_t i = 0; i < SIZE; i++)
             s.im_rep[i] = this->im_rep[i];
         mul(s, rhs);
         return s;
     }
 
-    cu_fun Scalar operator+(const Scalar& rhs) const
+    cu_fun Scalar operator+(const Scalar &rhs) const
     {
         Scalar s;
-        for(size_t i = 0; i < SIZE; i++)
+        for (size_t i = 0; i < SIZE; i++)
             s.im_rep[i] = this->im_rep[i];
         add(s, rhs);
         return s;
     }
 
-    cu_fun Scalar operator-(const Scalar& rhs) const
+    cu_fun Scalar operator-(const Scalar &rhs) const
     {
         Scalar s;
-        for(size_t i = 0; i < SIZE; i++)
+        for (size_t i = 0; i < SIZE; i++)
             s.im_rep[i] = this->im_rep[i];
         subtract(s, rhs);
         return s;
@@ -141,16 +143,16 @@ struct Scalar {
     cu_fun Scalar operator-() const
     {
         Scalar s;
-        for(size_t i = 0; i < SIZE; i++)
+        for (size_t i = 0; i < SIZE; i++)
             s.im_rep[i] = this->im_rep[i];
         subtract(s, *this);
         return s;
     }
 
-    cu_fun Scalar operator^(const uint32_t& rhs) const
+    cu_fun Scalar operator^(const uint32_t &rhs) const
     {
         Scalar s;
-        for(size_t i = 0; i < SIZE; i++)
+        for (size_t i = 0; i < SIZE; i++)
             s.im_rep[i] = this->im_rep[i];
         pow(s, rhs);
         return s;
@@ -159,7 +161,7 @@ struct Scalar {
     cu_fun Scalar square() const
     {
         Scalar s;
-        for(size_t i = 0; i < SIZE; i++)
+        for (size_t i = 0; i < SIZE; i++)
             s.im_rep[i] = this->im_rep[i];
         mul(s, *this);
         return s;
@@ -168,7 +170,7 @@ struct Scalar {
     cu_fun static Scalar shuffle_down(unsigned mask, Scalar val, unsigned offset)
     {
         Scalar result;
-        for(size_t i = 0; i < SIZE; i++)
+        for (size_t i = 0; i < SIZE; i++)
 #if defined(__CUDA_ARCH__)
             result.im_rep[i] = __shfl_down_sync(mask, val.im_rep[i], offset);
 #else
@@ -179,15 +181,15 @@ struct Scalar {
 #ifdef DEBUG
     static void printScalar(Scalar f)
     {
-        for(size_t i = 0; i < SIZE; i++)
+        for (size_t i = 0; i < SIZE; i++)
             printf("%u, ", f.im_rep[i]);
         printf("\n");
     }
 
     static void testEquality(Scalar f1, Scalar f2)
     {
-        for(size_t i = 0; i < SIZE; i++)
-            if(f1.im_rep[i] != f2.im_rep[i])
+        for (size_t i = 0; i < SIZE; i++)
+            if (f1.im_rep[i] != f2.im_rep[i])
             {
                 printf("Missmatch: \n");
                 printScalar(f1);
@@ -198,15 +200,16 @@ struct Scalar {
 #endif
 };
 
-cu_fun long idxOfLNZ(const Scalar& fld);
-cu_fun bool hasBitAt(const Scalar& fld, long index);
+cu_fun long idxOfLNZ(const Scalar &fld);
+cu_fun bool hasBitAt(const Scalar &fld, long index);
 
-struct fp2 {
+struct fp2
+{
     Scalar x;
     Scalar y;
     const Scalar non_residue = Scalar(13); //13 for mnt4753 and 11 for mnt6753
 
-    fp2 () = default;
+    cu_fun fp2() = default;
 
     cu_fun static fp2 zero()
     {
@@ -222,12 +225,12 @@ struct fp2 {
         y = _y;
     }
 
-    cu_fun fp2 operator*(const Scalar& rhs) const
+    cu_fun fp2 operator*(const Scalar &rhs) const
     {
         return fp2(this->x * rhs, this->y * rhs);
     }
 
-    cu_fun fp2 operator*(const fp2& rhs) const
+    cu_fun fp2 operator*(const fp2 &rhs) const
     {
         const Scalar &A = rhs.x;
         const Scalar &B = rhs.y;
@@ -235,10 +238,10 @@ struct fp2 {
         const Scalar &b = this->y;
         const Scalar aA = a * A;
         const Scalar bB = b * B;
-        return fp2(aA + non_residue * bB, ((a+b) * (A+B) - aA) - bB);
+        return fp2(aA + non_residue * bB, ((a + b) * (A + B) - aA) - bB);
     }
 
-    cu_fun fp2 operator-(const fp2& rhs) const
+    cu_fun fp2 operator-(const fp2 &rhs) const
     {
         return fp2(this->x - rhs.x, this->y - rhs.y);
     }
@@ -248,12 +251,12 @@ struct fp2 {
         return fp2(-this->x, -this->y);
     }
 
-    cu_fun fp2 operator+(const fp2& rhs) const
+    cu_fun fp2 operator+(const fp2 &rhs) const
     {
         return fp2(this->x + rhs.x, this->y + rhs.y);
     }
 
-    cu_fun void operator=(const fp2& rhs)
+    cu_fun void operator=(const fp2 &rhs)
     {
         this->x = rhs.x;
         this->y = rhs.y;
@@ -268,13 +271,15 @@ struct fp2 {
     }
 };
 
-struct mnt4753_G1 {
+struct mnt4753_G1
+{
     Scalar x;
     Scalar y;
     Scalar z;
     const Scalar coeff_a = Scalar(2); //2 for mnt4753 11 for mnt6753
 
-    cu_fun mnt4753_G1() {
+    cu_fun mnt4753_G1()
+    {
         x = Scalar::zero();
         y = Scalar::zero();
         z = Scalar::zero();
@@ -287,7 +292,8 @@ struct mnt4753_G1 {
         z = _z;
     }
 
-    cu_fun static bool is_zero(const mnt4753_G1& g1) {
+    cu_fun static bool is_zero(const mnt4753_G1 &g1)
+    {
         return g1.x.is_zero() && g1.y.is_zero() && g1.z.is_zero();
     }
 
@@ -296,7 +302,7 @@ struct mnt4753_G1 {
         return mnt4753_G1(Scalar::zero(), Scalar::zero(), Scalar::zero());
     }
 
-    cu_fun mnt4753_G1 operator+(const mnt4753_G1& other) const
+    cu_fun mnt4753_G1 operator+(const mnt4753_G1 &other) const
     {
         const Scalar X1Z2 = this->x * other.z;
         const Scalar Y1Z2 = this->y * other.z;
@@ -309,7 +315,7 @@ struct mnt4753_G1 {
         const Scalar R = vv * X1Z2;
         const Scalar A = uu * Z1Z2 - (vvv + R + R);
         const Scalar X3 = v * A;
-        const Scalar Y3 = u * (R-A) - vvv * Y1Z2;
+        const Scalar Y3 = u * (R - A) - vvv * Y1Z2;
         const Scalar Z3 = vvv * Z1Z2;
         return mnt4753_G1(X3, Y3, Z3);
     }
@@ -321,34 +327,34 @@ struct mnt4753_G1 {
             return (*this);
         }
 
-        const Scalar XX   = this->x * this->x;                   // XX  = X1^2
-        const Scalar ZZ   = this->z * this->z;                   // ZZ  = Z1^2
-        const Scalar w    = mnt4753_G1::coeff_a * ZZ + (XX + XX + XX); // w   = a*ZZ + 3*XX
+        const Scalar XX = this->x * this->x;                        // XX  = X1^2
+        const Scalar ZZ = this->z * this->z;                        // ZZ  = Z1^2
+        const Scalar w = mnt4753_G1::coeff_a * ZZ + (XX + XX + XX); // w   = a*ZZ + 3*XX
         const Scalar Y1Z1 = this->y * this->z;
-        const Scalar s    = Y1Z1 + Y1Z1;                            // s   = 2*Y1*Z1
-        const Scalar ss   = s * s;                            // ss  = s^2
-        const Scalar sss  = s * ss;                                // sss = s*ss
-        const Scalar R    = this->y * s;                         // R   = Y1*s
-        const Scalar RR   = R * R;                            // RR  = R^2
-        const Scalar T    = this->x + R;
-        const Scalar TT   = T * T;
-        const Scalar B    = TT - XX - RR;         // B   = (X1+R)^2 - XX - RR
-        const Scalar h    = (w * w) - (B+B);                    // h   = w^2 - 2*B
-        const Scalar X3   = h * s;                                  // X3  = h*s
-        const Scalar Y3   = w * (B-h)-(RR+RR);                      // Y3  = w*(B-h) - 2*RR
-        const Scalar Z3   = sss;                                    // Z3  = sss
+        const Scalar s = Y1Z1 + Y1Z1; // s   = 2*Y1*Z1
+        const Scalar ss = s * s;      // ss  = s^2
+        const Scalar sss = s * ss;    // sss = s*ss
+        const Scalar R = this->y * s; // R   = Y1*s
+        const Scalar RR = R * R;      // RR  = R^2
+        const Scalar T = this->x + R;
+        const Scalar TT = T * T;
+        const Scalar B = TT - XX - RR;             // B   = (X1+R)^2 - XX - RR
+        const Scalar h = (w * w) - (B + B);        // h   = w^2 - 2*B
+        const Scalar X3 = h * s;                   // X3  = h*s
+        const Scalar Y3 = w * (B - h) - (RR + RR); // Y3  = w*(B-h) - 2*RR
+        const Scalar Z3 = sss;                     // Z3  = sss
 
         return mnt4753_G1(X3, Y3, Z3);
     }
 
-    cu_fun void operator=(const mnt4753_G1& other)
+    cu_fun void operator=(const mnt4753_G1 &other)
     {
         this->x = other.x;
         this->y = other.y;
         this->z = other.z;
     }
 
-    cu_fun void operator+=(const mnt4753_G1& other)
+    cu_fun void operator+=(const mnt4753_G1 &other)
     {
         *this = *this + other;
     }
@@ -372,7 +378,7 @@ struct mnt4753_G1 {
         {
             if (one)
                 result = result.dbl();
-            if (hasBitAt(other,i))
+            if (hasBitAt(other, i))
             {
                 one = true;
                 result = result + *this;
@@ -391,7 +397,7 @@ struct mnt4753_G1 {
     }
 };
 
-}
+} // namespace fields
 
 //Modular representation
 
@@ -428,8 +434,8 @@ struct mnt4753_G1 {
 //00100100010111101000000000000001
 
 //decimal representation
-//= {115910, 764593169, 270700578, 4007841197, 3086587728, 
-// 1536143341, 1589111033, 1821890675, 134068517, 3902860685, 
-// 2580620505, 2707093405, 2971133814, 4061660573, 3087994277, 
-// 3411246648, 1750781161, 1987204260, 1669861489, 2596546032, 
+//= {115910, 764593169, 270700578, 4007841197, 3086587728,
+// 1536143341, 1589111033, 1821890675, 134068517, 3902860685,
+// 2580620505, 2707093405, 2971133814, 4061660573, 3087994277,
+// 3411246648, 1750781161, 1987204260, 1669861489, 2596546032,
 // 3818738770, 752685471, 1586521054, 610172929};

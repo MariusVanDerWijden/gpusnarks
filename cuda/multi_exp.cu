@@ -41,7 +41,7 @@ FieldT warpReduceSum(FieldT x) {
 }
 
 template <typename FieldT>
-extern __shared__ FieldT sMem[32];
+extern __shared__ FieldT sMem[];
 
 template <typename FieldT>
 __inline__ __device__
