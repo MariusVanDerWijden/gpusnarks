@@ -25,6 +25,7 @@
 
 #include "device_field.h"
 #include "device_field_operators.h"
+#include "multi_exp.h"
 
 #define LOG_NUM_THREADS 16
 #define NUM_THREADS (1 << LOG_NUM_THREADS)

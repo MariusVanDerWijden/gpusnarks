@@ -158,6 +158,14 @@ struct Scalar
         return s;
     }
 
+    cu_fun bool operator==(const Scalar &rhs) const
+    {
+        for (size_t i = 0; i < SIZE; i++)
+            if (rhs.im_rep[i] != this->im_rep[i])
+                return false;
+        return true;
+    }
+
     cu_fun Scalar square() const
     {
         Scalar s;
@@ -178,7 +186,7 @@ struct Scalar
 #endif
         return result;
     }
-#ifdef DEBUG
+
     static void printScalar(Scalar f)
     {
         for (size_t i = 0; i < SIZE; i++)
@@ -197,7 +205,6 @@ struct Scalar
                 assert(!"missmatch");
             }
     }
-#endif
 };
 
 cu_fun long idxOfLNZ(const Scalar &fld);
