@@ -68,7 +68,7 @@ struct Scalar
 {
 
     cu_fun void add(Scalar &fld1, const Scalar &fld2) const;
-    cu_fun void mul(Scalar &fld1, const Scalar &fld2) const;
+    cu_fun void mul(Scalar &fld1, const Scalar &fld2, const uint32_t* mod) const;
     cu_fun void subtract(Scalar &fld1, const Scalar &fld2) const;
     cu_fun void pow(Scalar &fld1, const uint32_t pow) const;
 
@@ -118,7 +118,7 @@ struct Scalar
         Scalar s;
         for (size_t i = 0; i < SIZE; i++)
             s.im_rep[i] = this->im_rep[i];
-        mul(s, rhs);
+        mul(s, rhs, _mod);
         return s;
     }
 
@@ -171,7 +171,7 @@ struct Scalar
         Scalar s;
         for (size_t i = 0; i < SIZE; i++)
             s.im_rep[i] = this->im_rep[i];
-        mul(s, *this);
+        mul(s, *this, _mod);
         return s;
     }
 

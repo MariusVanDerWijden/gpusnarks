@@ -89,6 +89,7 @@ void _basic_parallel_radix2_FFT_inner(std::vector<FieldT> &a, const FieldT omega
             {
                 // invariant: elt is omega^(j*idx)
                 const size_t idx = (i + (s << (log_m - log_cpus))) % (1u << log_m);
+                printf(" %d ", idx);
                 FieldT temp = a[idx];
                 temp = temp * elt;
                 tmp[j][i] = tmp[j][i] + temp;

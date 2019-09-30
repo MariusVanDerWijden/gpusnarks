@@ -44,7 +44,7 @@
 //#define m_inv 1L
 //#define m_inv 463568897L
 //#define m_inv 85162L
-#define m_inv 1139327334L
+#define m_inv 4294967295L
 
 namespace fields{
 
@@ -209,12 +209,11 @@ cu_fun void Scalar::subtract(Scalar & fld1, const Scalar & fld2) const
 }
 
 //Multiply two elements
-cu_fun void Scalar::mul(Scalar & fld1, const Scalar & fld2) const
+cu_fun void Scalar::mul(Scalar & fld1, const Scalar & fld2, const uint32_t * mod) const
 {
-    uint32_t tmp[SIZE + 3] = {0};
+    uint32_t tmp[SIZE + 2] = {0};
     
-    ciosMontgomeryMultiply(tmp, fld1.im_rep, SIZE, fld2.im_rep, _mod);
-    //sosMontgomeryMultiply(tmp + 1, fld1.im_rep, SIZE, fld2.im_rep, _mod);
+    ciosMontgomeryMultiply(tmp, fld1.im_rep, SIZE, fld2.im_rep, mod);
     for(size_t i = 0; i < SIZE; i++)
         fld1.im_rep[i] = tmp[i];
 }
