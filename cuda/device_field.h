@@ -91,7 +91,7 @@ struct Scalar
         return res;
     }
     //Default constructor
-    cu_fun Scalar() = default;
+    Scalar() = default;
     //Construct from value
     cu_fun Scalar(const uint32_t value)
     {
@@ -216,7 +216,7 @@ struct fp2
     Scalar y;
     const Scalar non_residue = Scalar(13); //13 for mnt4753 and 11 for mnt6753
 
-    cu_fun fp2() = default;
+    fp2() = default;
 
     cu_fun static fp2 zero()
     {

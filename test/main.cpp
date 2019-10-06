@@ -7,10 +7,10 @@
 #include <string.h>
 //#include "fft_host.h"
 //#include <cuda/fft_kernel.h>
-//#include <cuda/multi_exp.h>
+#include <cuda/multi_exp.h>
 #include <cuda/device_field.h>
 #include <fields/dummy_field.h>
-#include "multiexp.h"
+//#include "multiexp.h"
 
 typedef std::chrono::high_resolution_clock Clock;
 
@@ -105,19 +105,20 @@ void test_multiexp()
     {
         printf("Field size: %lu, Field count: %lu\n", sizeof(fields::Scalar), v1.size());
         auto t1 = Clock::now();
-        //gpuResult = multiexp<fields::Scalar, fields::Scalar>(v1, v2);
+        gpuResult = multiexp<fields::Scalar, fields::Scalar>(v1, v2);
         auto t2 = Clock::now();
         printf("Device FFT took %ld \n", std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count());
     }
 
     {
         auto t1 = Clock::now();
-        cpuResult = multi_exp<fields::Scalar, fields::Scalar>(v3, v4);
+        // cpuResult = multi_exp<fields::Scalar, fields::Scalar>(v3, v4);
         auto t2 = Clock::now();
         printf("Host FFT took %ld \n", std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count());
     }
     
+    fields::Scalar::printScalar(gpuResult);
     fields::Scalar::printScalar(cpuResult);
-    fields::Scalar::testEquality(cpuResult, gpuResult);
+    //fields::Scalar::testEquality(cpuResult, gpuResult);
     printf("\nDONE\n");
 }

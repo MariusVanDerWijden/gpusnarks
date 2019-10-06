@@ -91,11 +91,12 @@ deviceReduceKernel(FieldT *result, const FieldT *a, const FieldMul *mul, const s
     }
     if (threadIdx.x==0)
         result[blockIdx.x] = sum;
+    //FieldT::print(sum);
 }
 
 // Multiexp is a function that performs a multiplication and a summation of all elements.
 template<typename FieldT, typename FieldMul> 
-void multiexp (std::vector<FieldT> &a, std::vector<FieldMul> &mul) {
+FieldT multiexp (std::vector<FieldT> &a, std::vector<FieldMul> &mul) {
     assert(a.size() == mul.size());
     size_t blocks = NUM_THREADS / 1024 + 1;
     size_t threads = NUM_THREADS > 1024 ? 1024 : NUM_THREADS;
@@ -108,9 +109,15 @@ void multiexp (std::vector<FieldT> &a, std::vector<FieldMul> &mul) {
     FieldT *result;
     cudaMalloc(&result, sizeof(FieldT));
     deviceReduceKernelSecond<FieldT><<<1, blocks, sMem>>>(result, temp, blocks);
+
+    cudaDeviceSynchronize();
+
+    FieldT *cpuResult;
+    cudaMemcpy(cpuResult, result, sizeof(FieldT), cudaMemcpyDeviceToHost);
+    return *cpuResult;
 }
 
 // Make templates for the most common types.
-template void multiexp(std::vector<fields::Scalar> &v, std::vector<fields::Scalar> &mul);
-template void multiexp(std::vector<fields::fp2> &v, std::vector<fields::Scalar> &mul);
-template void multiexp(std::vector<fields::mnt4753_G1> &v, std::vector<fields::Scalar> &mul);
+template fields::Scalar multiexp(std::vector<fields::Scalar> &v, std::vector<fields::Scalar> &mul);
+template fields::fp2 multiexp(std::vector<fields::fp2> &v, std::vector<fields::Scalar> &mul);
+template fields::mnt4753_G1 multiexp(std::vector<fields::mnt4753_G1> &v, std::vector<fields::Scalar> &mul);

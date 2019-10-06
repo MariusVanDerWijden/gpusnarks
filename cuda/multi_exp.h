@@ -22,6 +22,6 @@
 #ifdef __cplusplus
 
 template<typename FieldT, typename FieldMul> 
-void multiexp (std::vector<FieldT> &a, std::vector<FieldMul> &mul); 
+FieldT multiexp (std::vector<FieldT> &a, std::vector<FieldMul> &mul); 
 
 #endif
