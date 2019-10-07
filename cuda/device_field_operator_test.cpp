@@ -76,7 +76,7 @@ namespace fields{
         
         Scalar s;
         toScalar(s, n_prime);
-        Scalar::printScalar(s);
+        Scalar::print(s);
         printf("\n");
         mpz_invert(R_PRIME, m, n); // r' = r^-1
         
@@ -160,7 +160,7 @@ namespace fields{
         toScalar(f, tmp);
         mpz_clear(tmp);
         */
-        Scalar::printScalar(f);
+        Scalar::print(f);
         f = f * Scalar::one();
         mpz_t tmp;
         toMPZ(tmp, f);
@@ -319,7 +319,7 @@ namespace fields{
         size_t size = SIZE;
         Scalar s;
         toScalar(s, n);
-        Scalar::printScalar(s);
+        Scalar::print(s);
         gmp_printf ("Mod:  [%Zd] \n",n);        
         assert(SIZE == 24);
         for(int i = 0; i < SIZE; i ++)
@@ -328,6 +328,15 @@ namespace fields{
         }
     }
 
+    void testMNT4() {
+        auto a = fields::mnt4753_G1(fields::Scalar(1234), fields::Scalar(12345), fields::Scalar(12346));
+        auto c = fields::mnt4753_G1(fields::Scalar(123434), fields::Scalar(1232), fields::Scalar(123490));
+        auto b = fields::Scalar(4321);
+        mnt4753_G1::print(a);
+        Scalar::print(b);
+        mnt4753_G1::print(a * b);
+        mnt4753_G1::print(a + c);
+    }
     
 
     void operate(fields::Scalar & f1, fields::Scalar f2, mpz_t const mod, int const op)
@@ -389,7 +398,7 @@ namespace fields{
             //printf("Missmatch: \n");
             //gmp_printf ("t: %d [%Zd] %d [%Zd] \n",omp_get_thread_num(), tmp1, op, mpz2);
             //gmp_printf ("t: %d CPU: [%Zd] GPU: [%Zd] \n",omp_get_thread_num() , mpz1, tmp);
-            //Scalar::printScalar(f1);
+            //Scalar::print(f1);
             //assert(!"error");
         }
         mpz_clear(tmp1);
@@ -441,6 +450,8 @@ namespace fields{
 
 int main(int argc, char** argv)
 {
+    fields::testMNT4();
+    /*
     fields::calculateModPrime();
     fields::testEncodeDecode();
     //fields::testMonty();
@@ -451,6 +462,7 @@ int main(int argc, char** argv)
     //fields::testMultiply();
     //fields::testPow();
     fields::fuzzTest();
+    */
     printf("\nAll tests successful\n");
     return 0;
 }
