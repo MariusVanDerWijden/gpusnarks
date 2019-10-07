@@ -62,7 +62,7 @@ cu_fun uint32_t clz(const uint32_t* element, const size_t e_size)
 {
     uint32_t lz = 0;
     uint32_t tmp;
-    for(size_t i = 0; i < e_size; i++)
+    for(size_t i = e_size; i > 0; i--)
     {
         if(element[i] == 0)
             tmp = 32;
@@ -256,10 +256,10 @@ cu_fun void Scalar::pow(Scalar & fld1, const uint32_t pow) const
         ciosMontgomeryMultiply(tmp, fld1.im_rep, SIZE, temp, _mod);
         for(size_t i = 0; i < SIZE; i++)
             fld1.im_rep[i] = tmp[i];
-        //printScalar(Scalar(fld1));
+        //print(Scalar(fld1));
         // Do not delete this, otherwise invalid compiler optimization
-        //printScalar(Scalar(temp));
-        //printScalar(Scalar(tmp));
+        //print(Scalar(temp));
+        //print(Scalar(tmp));
 
     }
     from_monty(fld1);

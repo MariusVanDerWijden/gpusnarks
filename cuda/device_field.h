@@ -187,7 +187,7 @@ struct Scalar
         return result;
     }
 
-    static void printScalar(Scalar f)
+    static void print(Scalar f)
     {
         for (size_t i = 0; i < SIZE; i++)
             printf("%u, ", f.im_rep[i]);
@@ -200,8 +200,8 @@ struct Scalar
             if (f1.im_rep[i] != f2.im_rep[i])
             {
                 printf("Missmatch: \n");
-                printScalar(f1);
-                printScalar(f2);
+                print(f1);
+                print(f2);
                 assert(!"missmatch");
             }
     }
@@ -276,6 +276,14 @@ struct fp2
         result.y = Scalar::shuffle_down(mask, val.y, offset);
         return result;
     }
+
+    static void print(fp2 f)
+    {
+        printf("FP2: ");
+        Scalar::print(f.x);
+        Scalar::print(f.y);
+        printf("\n");
+    }
 };
 
 struct mnt4753_G1
@@ -311,6 +319,8 @@ struct mnt4753_G1
 
     cu_fun mnt4753_G1 operator+(const mnt4753_G1 &other) const
     {
+        print(other);
+        print(*this);
         const Scalar X1Z2 = this->x * other.z;
         const Scalar Y1Z2 = this->y * other.z;
         const Scalar Z1Z2 = this->z * other.z;
@@ -324,7 +334,9 @@ struct mnt4753_G1
         const Scalar X3 = v * A;
         const Scalar Y3 = u * (R - A) - vvv * Y1Z2;
         const Scalar Z3 = vvv * Z1Z2;
-        return mnt4753_G1(X3, Y3, Z3);
+        mnt4753_G1 result = mnt4753_G1(X3, Y3, Z3);
+        print(result);
+        return result;
     }
 
     cu_fun mnt4753_G1 dbl() const
@@ -381,7 +393,7 @@ struct mnt4753_G1
         mnt4753_G1 result = zero();
 
         bool one = false;
-        for (long i = idxOfLNZ(other) - 1; i >= 0; --i)
+        for (long i = SIZE * 32; i >= 0; --i)
         {
             if (one)
                 result = result.dbl();
@@ -401,6 +413,15 @@ struct mnt4753_G1
         result.y = Scalar::shuffle_down(mask, val.y, offset);
         result.z = Scalar::shuffle_down(mask, val.z, offset);
         return result;
+    }
+
+    static void print(mnt4753_G1 f)
+    {
+        printf("\nmnt4753_G1: \n");
+        Scalar::print(f.x);
+        Scalar::print(f.y);
+        Scalar::print(f.z);
+        printf("----\n");
     }
 };
 

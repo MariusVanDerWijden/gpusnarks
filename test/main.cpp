@@ -16,11 +16,13 @@ typedef std::chrono::high_resolution_clock Clock;
 
 void test_multiexp();
 void test_fft();
+void test_multiexp_mnt4753_G1();
 
 int main(void)
 {
-    test_fft();
-    test_multiexp();
+    //test_fft();
+    //test_multiexp();
+    test_multiexp_mnt4753_G1();
 }
 
 void test_fft()
@@ -116,9 +118,53 @@ void test_multiexp()
         auto t2 = Clock::now();
         printf("Host FFT took %ld \n", std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count());
     }
-    
-    fields::Scalar::printScalar(gpuResult);
-    fields::Scalar::printScalar(cpuResult);
-    //fields::Scalar::testEquality(cpuResult, gpuResult);
+
+    fields::Scalar::print(cpuResult);
+    fields::Scalar::print(gpuResult);
+    fields::Scalar::testEquality(cpuResult, gpuResult);
+    printf("\nDONE\n");
+}
+
+void test_multiexp_mnt4753_G1()
+{
+    printf("\nTEST MULTI_EXP_MNT4753\n");
+    size_t _size = 1 << 20;
+    std::vector<fields::mnt4753_G1> v1;
+    std::vector<fields::Scalar> v2;
+    std::vector<fields::mnt4753_G1> v3;
+    std::vector<fields::Scalar> v4;
+
+    v1.reserve(_size);
+    v2.reserve(_size);
+    v3.reserve(_size);
+    v4.reserve(_size);
+
+    for (size_t i = 0; i < _size; i++)
+    {
+        v1.push_back(fields::mnt4753_G1(fields::Scalar(1234), fields::Scalar(1234), fields::Scalar(1234)));
+        v2.push_back(fields::Scalar(1234));
+        v3.push_back(fields::mnt4753_G1(fields::Scalar(1234), fields::Scalar(12345), fields::Scalar(123456)));
+        v4.push_back(fields::Scalar(1234));
+    }
+
+    fields::mnt4753_G1 gpuResult;
+    fields::mnt4753_G1 cpuResult;
+
+    {
+        printf("Field size: %lu, Field count: %lu\n", sizeof(fields::mnt4753_G1), v1.size());
+        auto t1 = Clock::now();
+        //gpuResult = multiexp<fields::Scalar, fields::Scalar>(v1, v2);
+        auto t2 = Clock::now();
+        printf("Device FFT took %ld \n", std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count());
+    }
+
+    {
+        auto t1 = Clock::now();
+        cpuResult = multi_exp<fields::mnt4753_G1, fields::Scalar>(v3, v4);
+        auto t2 = Clock::now();
+        printf("Host FFT took %ld \n", std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count());
+    }
+
+    fields::Scalar::print(cpuResult.x);
     printf("\nDONE\n");
 }
