@@ -74,7 +74,6 @@ deviceReduceKernelSecond(FieldT *out, const FieldT *resIn, const size_t n) {
     }   
     if (threadIdx.x==0) // Store the end result
         out[blockIdx.x] = sum; 
-    FieldT::print(sum);
 }
 
 template <typename FieldT, typename FieldMul>
@@ -86,7 +85,7 @@ deviceReduceKernel(FieldT *result, const FieldT *a, const FieldMul *mul, const s
     if (idx < n) {
         for(int i = idx; i < n; i += (blockDim.x * gridDim.x)){
             const FieldT tmp = a[i] * mul[i];
-            sum = sum + tmp;         
+            sum = sum + tmp;   
         }
         sum = blockReduceSum<FieldT>(sum);
     }
@@ -98,13 +97,21 @@ deviceReduceKernel(FieldT *result, const FieldT *a, const FieldMul *mul, const s
 template<typename FieldT, typename FieldMul> 
 FieldT multiexp (std::vector<FieldT> &a, std::vector<FieldMul> &mul) {
     assert(a.size() == mul.size());
-    size_t blocks = NUM_THREADS / 1024 + 1;
-    size_t threads = NUM_THREADS > 1024 ? 1024 : NUM_THREADS;
+    size_t blocks = NUM_THREADS / 512 + 1;
+    size_t threads = NUM_THREADS > 512 ? 512 : NUM_THREADS;
     size_t sMem = 32 * sizeof(FieldT);
     
+    FieldT *in;
+    cudaMalloc((void**)&in, sizeof(FieldT) * a.size());
+    cudaMemcpy(in, (void**)&a[0], sizeof(FieldT) * a.size(), cudaMemcpyHostToDevice);
+
+    FieldMul *cmul;
+    cudaMalloc((void**)&cmul, sizeof(FieldMul) * a.size());
+    cudaMemcpy(cmul, (void**)&mul[0], sizeof(FieldMul) * a.size(), cudaMemcpyHostToDevice);
+
     FieldT *temp;
     cudaMalloc(&temp, sizeof(FieldT) * blocks);
-    deviceReduceKernel<FieldT,FieldMul><<<blocks, threads, sMem>>>(temp, &a[0], &mul[0], a.size());
+    deviceReduceKernel<FieldT,FieldMul><<<blocks, threads, sMem>>>(temp, in, cmul, a.size());
     
     FieldT *result;
     cudaMalloc(&result, sizeof(FieldT));

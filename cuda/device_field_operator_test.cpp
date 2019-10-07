@@ -485,8 +485,8 @@ void fuzzTest()
 
 int main(int argc, char **argv)
 {
-    //fields::testMNT4();
-    fields::testBitAt();
+    fields::testMNT4();
+    //fields::testBitAt();
     /*
     fields::calculateModPrime();
     fields::testEncodeDecode();

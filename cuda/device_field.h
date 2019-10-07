@@ -322,6 +322,8 @@ struct mnt4753_G1
         const Scalar X1Z2 = this->x * other.z;
         const Scalar Y1Z2 = this->y * other.z;
         const Scalar Z1Z2 = this->z * other.z;
+        Scalar::print(X1Z2);
+        Scalar::print(X1Z2);
         const Scalar u = other.y * this->z - Y1Z2;
         const Scalar uu = u * u;
         const Scalar v = other.x * this->z - X1Z2;
@@ -333,6 +335,7 @@ struct mnt4753_G1
         const Scalar Y3 = u * (R - A) - vvv * Y1Z2;
         const Scalar Z3 = vvv * Z1Z2;
         mnt4753_G1 result = mnt4753_G1(X3, Y3, Z3);
+        print(result);
         return result;
     }
 
@@ -400,7 +403,6 @@ struct mnt4753_G1
             {
                 one = true;
                 result = result + *this;
-                print(result);
             }
         }
         return result;

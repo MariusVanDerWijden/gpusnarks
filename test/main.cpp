@@ -7,10 +7,10 @@
 #include <string.h>
 //#include "fft_host.h"
 //#include <cuda/fft_kernel.h>
-#include <cuda/multi_exp.h>
+//#include <cuda/multi_exp.h>
 #include <cuda/device_field.h>
 #include <fields/dummy_field.h>
-//#include "multiexp.h"
+#include "multiexp.h"
 
 typedef std::chrono::high_resolution_clock Clock;
 
@@ -107,20 +107,21 @@ void test_multiexp()
     {
         printf("Field size: %lu, Field count: %lu\n", sizeof(fields::Scalar), v1.size());
         auto t1 = Clock::now();
-        gpuResult = multiexp<fields::Scalar, fields::Scalar>(v1, v2);
+        //gpuResult = multiexp<fields::Scalar, fields::Scalar>(v1, v2);
         auto t2 = Clock::now();
         printf("Device FFT took %ld \n", std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count());
     }
 
     {
         auto t1 = Clock::now();
-        // cpuResult = multi_exp<fields::Scalar, fields::Scalar>(v3, v4);
+        cpuResult = multi_exp<fields::Scalar, fields::Scalar>(v3, v4);
         auto t2 = Clock::now();
         printf("Host FFT took %ld \n", std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count());
     }
 
     fields::Scalar::print(cpuResult);
     fields::Scalar::print(gpuResult);
+    //2927928597, 2105322411, 4261953261, 745889728, 3212301203, 3043306731, 3736087641, 2664509325, 4147320171, 2647463703, 809528181, 2881704283, 579864886, 1637251218, 741144266, 2583512979, 3940294493, 1592929462, 2807328322, 1648614684, 4248786925, 457161456, 3367883393, 4369
     fields::Scalar::testEquality(cpuResult, gpuResult);
     printf("\nDONE\n");
 }
@@ -153,7 +154,7 @@ void test_multiexp_mnt4753_G1()
     {
         printf("Field size: %lu, Field count: %lu\n", sizeof(fields::mnt4753_G1), v1.size());
         auto t1 = Clock::now();
-        gpuResult = multiexp<fields::mnt4753_G1, fields::Scalar>(v1, v2);
+        // gpuResult = multiexp<fields::mnt4753_G1, fields::Scalar>(v1, v2);
         auto t2 = Clock::now();
         printf("Device FFT took %ld \n", std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count());
     }
