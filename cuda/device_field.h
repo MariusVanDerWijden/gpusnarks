@@ -68,7 +68,7 @@ struct Scalar
 {
 
     cu_fun void add(Scalar &fld1, const Scalar &fld2) const;
-    cu_fun void mul(Scalar &fld1, const Scalar &fld2, const uint32_t* mod) const;
+    cu_fun void mul(Scalar &fld1, const Scalar &fld2, const uint32_t *mod) const;
     cu_fun void subtract(Scalar &fld1, const Scalar &fld2) const;
     cu_fun void pow(Scalar &fld1, const uint32_t pow) const;
 
@@ -91,7 +91,7 @@ struct Scalar
         return res;
     }
     //Default constructor
-    Scalar() = default;
+    cu_fun Scalar() = default;
     //Construct from value
     cu_fun Scalar(const uint32_t value)
     {
@@ -187,7 +187,7 @@ struct Scalar
         return result;
     }
 
-    static void print(Scalar f)
+    cu_fun static void print(Scalar f)
     {
         for (size_t i = 0; i < SIZE; i++)
             printf("%u, ", f.im_rep[i]);
@@ -216,7 +216,7 @@ struct fp2
     Scalar y;
     const Scalar non_residue = Scalar(13); //13 for mnt4753 and 11 for mnt6753
 
-    fp2() = default;
+    cu_fun fp2() = default;
 
     cu_fun static fp2 zero()
     {
@@ -277,7 +277,7 @@ struct fp2
         return result;
     }
 
-    static void print(fp2 f)
+    cu_fun static void print(fp2 f)
     {
         printf("FP2: ");
         Scalar::print(f.x);
@@ -319,8 +319,6 @@ struct mnt4753_G1
 
     cu_fun mnt4753_G1 operator+(const mnt4753_G1 &other) const
     {
-        print(other);
-        print(*this);
         const Scalar X1Z2 = this->x * other.z;
         const Scalar Y1Z2 = this->y * other.z;
         const Scalar Z1Z2 = this->z * other.z;
@@ -335,7 +333,6 @@ struct mnt4753_G1
         const Scalar Y3 = u * (R - A) - vvv * Y1Z2;
         const Scalar Z3 = vvv * Z1Z2;
         mnt4753_G1 result = mnt4753_G1(X3, Y3, Z3);
-        print(result);
         return result;
     }
 
@@ -343,6 +340,7 @@ struct mnt4753_G1
     {
         if (is_zero(*this))
         {
+            printf("tock\n");
             return (*this);
         }
 
@@ -362,7 +360,7 @@ struct mnt4753_G1
         const Scalar X3 = h * s;                   // X3  = h*s
         const Scalar Y3 = w * (B - h) - (RR + RR); // Y3  = w*(B-h) - 2*RR
         const Scalar Z3 = sss;                     // Z3  = sss
-
+        print(mnt4753_G1(X3, Y3, Z3));
         return mnt4753_G1(X3, Y3, Z3);
     }
 
@@ -397,10 +395,12 @@ struct mnt4753_G1
         {
             if (one)
                 result = result.dbl();
+
             if (hasBitAt(other, i))
             {
                 one = true;
                 result = result + *this;
+                print(result);
             }
         }
         return result;
@@ -415,7 +415,7 @@ struct mnt4753_G1
         return result;
     }
 
-    static void print(mnt4753_G1 f)
+    cu_fun static void print(mnt4753_G1 f)
     {
         printf("\nmnt4753_G1: \n");
         Scalar::print(f.x);

@@ -74,6 +74,7 @@ deviceReduceKernelSecond(FieldT *out, const FieldT *resIn, const size_t n) {
     }   
     if (threadIdx.x==0) // Store the end result
         out[blockIdx.x] = sum; 
+    FieldT::print(sum);
 }
 
 template <typename FieldT, typename FieldMul>
@@ -91,7 +92,6 @@ deviceReduceKernel(FieldT *result, const FieldT *a, const FieldMul *mul, const s
     }
     if (threadIdx.x==0)
         result[blockIdx.x] = sum;
-    //FieldT::print(sum);
 }
 
 // Multiexp is a function that performs a multiplication and a summation of all elements.
@@ -112,9 +112,9 @@ FieldT multiexp (std::vector<FieldT> &a, std::vector<FieldMul> &mul) {
 
     cudaDeviceSynchronize();
 
-    FieldT *cpuResult;
-    cudaMemcpy(cpuResult, result, sizeof(FieldT), cudaMemcpyDeviceToHost);
-    return *cpuResult;
+    FieldT cpuResult;
+    cudaMemcpy(&cpuResult, result, sizeof(FieldT), cudaMemcpyDeviceToHost);
+    return cpuResult;
 }
 
 // Make templates for the most common types.
