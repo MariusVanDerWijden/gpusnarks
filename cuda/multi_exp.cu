@@ -117,8 +117,6 @@ FieldT multiexp (std::vector<FieldT> &a, std::vector<FieldMul> &mul) {
     cudaMalloc(&result, sizeof(FieldT));
     deviceReduceKernelSecond<FieldT><<<1, blocks, sMem>>>(result, temp, blocks);
 
-    cudaDeviceSynchronize();
-
     FieldT cpuResult;
     cudaMemcpy(&cpuResult, result, sizeof(FieldT), cudaMemcpyDeviceToHost);
     return cpuResult;

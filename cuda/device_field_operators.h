@@ -88,14 +88,6 @@ cu_fun bool hasBitAt(const Scalar &fld, long index)
     return CHECK_BIT(fld.im_rep[idx2], idx1) != 0;
 }
 
-#ifdef DEBUG
-cu_fun void set_mod(const Scalar &f)
-{
-    for (size_t i = 0; i < SIZE; i++)
-        _mod[i] = f.im_rep[i];
-}
-#endif
-
 //Returns true if the first element is less than the second element
 cu_fun bool less(const uint32_t *element1, const size_t e1_size, const uint32_t *element2, const size_t e2_size)
 {
@@ -144,11 +136,11 @@ cu_fun bool _subtract(uint32_t *element1, const size_t e1_size, bool carry, cons
     return borrow;
 }
 
-cu_fun void montyNormalize(uint32_t *result, const size_t a_size, const bool msb)
+cu_fun void montyNormalize(uint32_t *result, const size_t a_size, const uint32_t *mod, const bool msb)
 {
     uint32_t u[SIZE] = {0};
     memcpy(u, result, a_size);
-    bool borrow = _subtract(u, SIZE, false, _mod, SIZE);
+    bool borrow = _subtract(u, SIZE, false, mod, SIZE);
     if (msb || !borrow)
     {
         assert(!msb || msb == borrow);
@@ -158,7 +150,7 @@ cu_fun void montyNormalize(uint32_t *result, const size_t a_size, const bool msb
 
 cu_fun void ciosMontgomeryMultiply(uint32_t *result,
                                    const uint32_t *a, const size_t a_size,
-                                   const uint32_t *b, const uint32_t *n)
+                                   const uint32_t *b, const uint32_t *mod)
 {
     uint64_t temp;
     for (size_t i = 0; i < a_size; i++)
@@ -176,12 +168,12 @@ cu_fun void ciosMontgomeryMultiply(uint32_t *result,
         result[a_size] = (uint32_t)temp;
         result[a_size + 1] = temp >> 32;
         uint32_t m = (uint32_t)((uint64_t)result[0] * m_inv);
-        temp = result[0] + (uint64_t)m * (uint64_t)n[0];
+        temp = result[0] + (uint64_t)m * (uint64_t)mod[0];
         carry = temp >> 32;
         for (size_t j = 1; j < a_size; j++)
         {
             temp = result[j];
-            temp += (uint64_t)m * (uint64_t)n[j];
+            temp += (uint64_t)m * (uint64_t)mod[j];
             temp += carry;
             result[j - 1] = (uint32_t)temp;
             carry = temp >> 32;
@@ -191,7 +183,7 @@ cu_fun void ciosMontgomeryMultiply(uint32_t *result,
         result[a_size] = temp >> 32;
     }
     bool msb = result[a_size] > 0;
-    montyNormalize(result, a_size, msb);
+    montyNormalize(result, a_size, mod, msb);
 }
 
 //Adds two elements

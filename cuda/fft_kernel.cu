@@ -41,13 +41,7 @@ if ( cudaSuccess != result )            \
 __device__ __forceinline__
 size_t bitreverse(size_t n, const size_t l)
 {
-    size_t r = 0;
-    for (size_t k = 0; k < l; ++k)
-    {
-        r = (r << 1) | (n & 1);
-        n >>= 1;
-    }
-    return r;
+    return __brevll(n) >> (64ull - l); 
 }
 
 __device__ uint32_t _mod [SIZE] = { 610172929, 1586521054, 752685471, 3818738770, 
@@ -66,60 +60,46 @@ __global__ void cuda_fft(FieldT *out, FieldT *field) {
     if(startidx > length)
         return;
     FieldT a [block_length];
-    //zero()
-    memset(a, block_length,  0); 
 
     //TODO algorithm is non-deterministic because of padding
     FieldT omega_j = FieldT(_mod);
     omega_j = omega_j ^ idx; // pow
     FieldT omega_step = FieldT(_mod);
-    omega_step = omega_step ^ idx << (log_m - LOG_NUM_THREADS);
+    omega_step = omega_step ^ (idx << (log_m - LOG_NUM_THREADS));
     
     FieldT elt = FieldT::one();
+    //Do not remove log2f(n), otherwise register overflow
+    size_t n = block_length, logn = log2f(n);
+    assert (n == (1u << logn));
     for (size_t i = 0; i < 1ul<<(log_m - LOG_NUM_THREADS); ++i)
     {
+        const size_t ri = bitreverse(i, logn);
         for (size_t s = 0; s < NUM_THREADS; ++s)
         {
             // invariant: elt is omega^(j*idx)
             size_t id = (i + (s<<(log_m - LOG_NUM_THREADS))) % (1u << log_m);
             FieldT tmp = field[id];
             tmp = tmp * elt;
-            a[i] = a[i] + tmp;
+            if (s != 0) tmp = tmp + a[ri];
+            a[ri] = tmp;
             elt = elt * omega_step;
         }
         elt = elt * omega_j;
     }
 
     const FieldT omega_num_cpus = FieldT(_mod) ^ NUM_THREADS;
-    
-    //Do not remove log2f(n), otherwise register overflow
-    size_t n = block_length, logn = log2f(n);
-    assert (n == (1u << logn));
-
-    /* swapping in place (from Storer's book) */
-    for (size_t k = 0; k < n; ++k)
-    {
-        const size_t rk = bitreverse(k, logn);
-        if (k < rk)
-        {
-            FieldT tmp = a[k];
-            a[k] = a[rk];
-            a[rk] = tmp;
-        }
-    }
-
     size_t m = 1; // invariant: m = 2^{s-1}
     for (size_t s = 1; s <= logn; ++s)
     {
         // w_m is 2^s-th root of unity now
         const FieldT w_m = omega_num_cpus^(n/(2*m));
-
         for (size_t k = 0; k < n; k += 2*m)
         {
             FieldT w = FieldT::one();
             for (size_t j = 0; j < m; ++j)
             {
-                const FieldT t = w * a[k+j+m];
+                const FieldT t = w;
+                w = w * a[k+j+m];
                 a[k+j+m] = a[k+j] - t;
                 a[k+j] = a[k+j] + t;
                 w = w * w_m;
@@ -162,7 +142,7 @@ void best_fft (std::vector<FieldT> &a, const FieldT &omg)
         exit(-1);
     }
 
-    CUDA_CALL( cudaMemcpy((void**)&a[0], in, sizeof(FieldT) * a.size(), cudaMemcpyDeviceToHost); )
+    CUDA_CALL( cudaMemcpy((void**)&a[0], out, sizeof(FieldT) * a.size(), cudaMemcpyDeviceToHost); )
 
     CUDA_CALL( cudaDeviceSynchronize();)
 }

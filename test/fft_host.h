@@ -79,7 +79,7 @@ void _basic_parallel_radix2_FFT_inner(std::vector<FieldT> &a, const FieldT omega
         FieldT omega_j = omega;
         omega_j = omega_j ^ j;
         FieldT omega_step = omega;
-        omega_step ^ j << (log_m - log_cpus);
+        omega_step = omega_step ^ (j << (log_m - log_cpus));
 
         //printf("omega_host: %d %d \n", omega_j, omega_step);
         FieldT elt = FieldT::one();
@@ -89,7 +89,6 @@ void _basic_parallel_radix2_FFT_inner(std::vector<FieldT> &a, const FieldT omega
             {
                 // invariant: elt is omega^(j*idx)
                 const size_t idx = (i + (s << (log_m - log_cpus))) % (1u << log_m);
-                printf(" %d ", idx);
                 FieldT temp = a[idx];
                 temp = temp * elt;
                 tmp[j][i] = tmp[j][i] + temp;
@@ -101,9 +100,7 @@ void _basic_parallel_radix2_FFT_inner(std::vector<FieldT> &a, const FieldT omega
             //elt *= omega_j;
         }
     }
-    FieldT omega_num_cpus = omega;
-    omega_num_cpus = omega_num_cpus ^ num_cpus;
-
+    FieldT omega_num_cpus = omega ^ num_cpus;
 #pragma omp parallel for
     for (size_t j = 0; j < num_cpus; ++j)
     {
