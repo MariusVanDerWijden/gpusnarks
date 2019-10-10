@@ -19,187 +19,242 @@
 #pragma once
 #include <cstdint>
 
-#include <cuda.h>
-#include <cuda_runtime.h>
 #include "device_field.h"
 
-#define SIZE (256 / 32)
+#define SIZE (768 / 32)
 
-#define cu_fun __host__ __device__ 
+#if defined(__CUDA_ARCH__)
+#define _clz __clz
+#else
+#define _clz __builtin_clz
+#endif
 
-namespace fields{
+#ifndef DEBUG
+#define cu_fun __host__ __device__
+#else
+#define cu_fun
+#include <assert.h>
+#include <malloc.h>
+#include <cstring>
+#endif
+
+#define CHECK_BIT(var, pos) ((var) & (1 << (pos)))
+//#define m_inv 1723983939ULL
+//#define m_inv 4294967296L
+//#define m_inv 1L
+//#define m_inv 463568897L
+//#define m_inv 85162L
+#define m_inv 4294967295L
+
+namespace fields
+{
 
 using size_t = decltype(sizeof 1ll);
 
-cu_fun bool operator==(const Field& lhs, const Field& rhs)
+cu_fun bool operator==(const Scalar &lhs, const Scalar &rhs)
 {
-    for(size_t i = 0; i < SIZE; i++)
-        if(lhs.im_rep[i] != rhs.im_rep[i])
+    for (size_t i = 0; i < SIZE; i++)
+        if (lhs.im_rep[i] != rhs.im_rep[i])
             return false;
     return true;
 }
 
-//Returns true iff this element is zero
-cu_fun bool is_zero(const Field & fld)
+cu_fun uint32_t clz(const uint32_t *element, const size_t e_size)
 {
-    for(size_t i = 0; i < SIZE; i++)
-        if(fld.im_rep[i] != 0)
+    uint32_t lz = 0;
+    uint32_t tmp;
+    for (size_t i = e_size; i > 0; i--)
+    {
+        if (element[i] == 0)
+            tmp = 32;
+        else
+            tmp = _clz(element[i]);
+        lz += tmp;
+        if (tmp < 32)
+            break;
+    }
+    return lz;
+}
+
+cu_fun long idxOfLNZ(const Scalar &fld)
+{
+    return SIZE - clz(fld.im_rep, SIZE);
+}
+
+cu_fun bool hasBitAt(const Scalar &fld, long index)
+{
+    long idx1 = index % 32;
+    long idx2 = index / 32;
+    return CHECK_BIT(fld.im_rep[idx2], idx1) != 0;
+}
+
+//Returns true if the first element is less than the second element
+cu_fun bool less(const uint32_t *element1, const size_t e1_size, const uint32_t *element2, const size_t e2_size)
+{
+    assert(e1_size == e2_size);
+    for (size_t i = e2_size - 1; i > 0; i--)
+        if (element1[i] > element2[i])
             return false;
-    return true;
+        else if (element1[i] < element2[i])
+            return true;
+    return element1[0] < element2[0];
 }
 
-cu_fun bool less(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
+// Returns the carry, true if there was a carry, false otherwise
+cu_fun bool _add(uint32_t *element1, const size_t e1_size, const uint32_t *element2, const size_t e2_size)
 {
-    if(e1_size < e2_size)
-        return true;
-    for(size_t i = 0; i > e1_size - e2_size; i++)
-        if(element1[i] > 0)
-            return false;
-    return element1[e1_size - e2_size] < element2[0];
-}
-
-//Returns -1 to indicate an overflow, 0 otherwise
-cu_fun int add(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
-{
-    //check that first array can handle overflow
-    assert(e1_size == e2_size + 1);
-    for(size_t i = e1_size -1 ; i > 1 ; i--)
+    assert(e1_size == e2_size);
+    uint32_t carry = 0;
+    for (int i = 0; i < e1_size; i++)
     {
-        uint64_t tmp = (uint64_t)element1[i] + element2[i];
-        element1[i] = (uint32_t)tmp;
-        element1[i - 1] = (uint32_t)((uint64_t)tmp >> 32);
+        uint64_t tmp = (uint64_t)element1[i];
+        tmp += carry;
+        tmp += (uint64_t)element2[i];
+        element1[i] = (uint32_t)(tmp);
+        carry = (uint32_t)(tmp >> 32);
     }
-    return element1[0] > 0 ? -1 : 0;
+    return carry;
 }
 
-cu_fun int substract(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
+// Fails if the second number is bigger than the first
+cu_fun bool _subtract(uint32_t *element1, const size_t e1_size, bool carry, const uint32_t *element2, const size_t e2_size)
 {
-    assert(e1_size >= e2_size);
-    bool carry = false;
-    for(size_t i = 1; i <= e1_size; i++)
+    assert(e1_size == e2_size);
+    bool borrow = false;
+    for (int i = 0; i < e1_size; i++)
     {
-        uint64_t tmp = (uint64_t)element1[e1_size - i - 1];
-        bool underflow = (tmp == 0);
-        if(carry) tmp--;
-        carry = (e2_size >= i) ? (tmp < element2[e2_size - i]) : underflow;
-        if(carry) tmp += ((uint64_t)1 << 33);
-        element1[i] = tmp - (e2_size >= i) ? element2[e2_size - i] : 0;
+        uint64_t tmp = (uint64_t)element1[i];
+        bool underflow = (tmp == 0) && (element2[i] > 0 || borrow);
+        if (borrow)
+            tmp--;
+        borrow = underflow || (tmp < element2[i]);
+        if (borrow)
+            tmp += ((uint64_t)1 << 33);
+        element1[i] = tmp - element2[i];
     }
-    if(carry)
-        //negative
-        return -1;
-    return 1;
+    //assert(borrow == carry);
+    return borrow;
 }
 
-cu_fun void modulo(uint32_t* element, const size_t e_size, const uint32_t* _mod, const size_t mod_size)
+cu_fun void montyNormalize(uint32_t *result, const size_t a_size, const uint32_t *mod, const bool msb)
 {
-    while(!less(element, e_size, _mod, mod_size))
+    uint32_t u[SIZE] = {0};
+    memcpy(u, result, a_size);
+    bool borrow = _subtract(u, SIZE, false, mod, SIZE);
+    if (msb || !borrow)
     {
-        if(substract(element, e_size, _mod, mod_size) == -1)
-            add(element, e_size, _mod, mod_size);
+        assert(!msb || msb == borrow);
+        memcpy(result, u, a_size);
     }
-} 
+}
 
-cu_fun uint32_t* multiply(const uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
+cu_fun void ciosMontgomeryMultiply(uint32_t *result,
+                                   const uint32_t *a, const size_t a_size,
+                                   const uint32_t *b, const uint32_t *mod)
 {
-    uint32_t* tmp = (uint32_t*) malloc ((e1_size + e2_size) * sizeof(uint32_t));
     uint64_t temp;
-    for(size_t i = e1_size -1; i > 0; --i)
+    for (size_t i = 0; i < a_size; i++)
     {
-        for(size_t j = e2_size -1; j > 0; --j)
+        uint32_t carry = 0;
+        for (size_t j = 0; j < a_size; j++)
         {
-            temp = element1[i] * element2[j];
-            tmp[i+j] += (uint32_t) temp;
-            if((temp >> 32) > 0)
-                tmp[i+j-1] += temp >> 32;
+            temp = result[j];
+            temp += (uint64_t)a[j] * (uint64_t)b[i];
+            temp += carry;
+            result[j] = (uint32_t)temp;
+            carry = temp >> 32;
         }
+        temp = result[a_size] + carry;
+        result[a_size] = (uint32_t)temp;
+        result[a_size + 1] = temp >> 32;
+        uint32_t m = (uint32_t)((uint64_t)result[0] * m_inv);
+        temp = result[0] + (uint64_t)m * (uint64_t)mod[0];
+        carry = temp >> 32;
+        for (size_t j = 1; j < a_size; j++)
+        {
+            temp = result[j];
+            temp += (uint64_t)m * (uint64_t)mod[j];
+            temp += carry;
+            result[j - 1] = (uint32_t)temp;
+            carry = temp >> 32;
+        }
+        temp = result[a_size] + carry;
+        result[a_size - 1] = (uint32_t)temp;
+        result[a_size] = temp >> 32;
     }
-    return tmp;
-}
-
-//Squares this element
-cu_fun void square(Field & fld)
-{
-    //TODO since squaring produces equal intermediate results, this can be sped up
-    uint32_t * tmp  = multiply(fld.im_rep, SIZE, fld.im_rep, SIZE);
-    //size of tmp is 2*size
-    modulo(tmp, 2*SIZE, _mod, SIZE);
-    //Last size words are the result
-    for(size_t i = 0; i < SIZE; i++)
-        fld.im_rep[i] = tmp[SIZE + i]; 
-}
-
-/*
-//Doubles this element
-void double(Field & fld)
-{
-    uint32_t temp[] = {2};
-    uint32_t tmp[] = multiply(fld.im_rep, size, temp, 1);
-    //size of tmp is 2*size
-    modulo(tmp, 2*size, mod, size);
-    //Last size words are the result
-    for(size_t i = 0; i < size; i++)
-        fld.im_rep[i] = tmp[size + i]; 
-}*/
-
-//Negates this element
-cu_fun void negate(Field & fld)
-{
-    //TODO implement
+    bool msb = result[a_size] > 0;
+    montyNormalize(result, a_size, mod, msb);
 }
 
 //Adds two elements
-cu_fun void add(Field & fld1, const Field & fld2)
+cu_fun void Scalar::add(Scalar &fld1, const Scalar &fld2) const
 {
-    //TODO find something more elegant
-    uint32_t tmp[SIZE + 1];
-    for(size_t i = 0; i < SIZE; i++)
-        tmp[i + 1] = fld1.im_rep[i];
-
-    add(tmp, SIZE + 1, fld2.im_rep, SIZE);
-    modulo(tmp, SIZE + 1, _mod, SIZE);
-    for(size_t i = 0; i < SIZE; i++)
-        fld1.im_rep[i] = tmp[i + 1];
+    bool carry = _add(fld1.im_rep, SIZE, fld2.im_rep, SIZE);
+    if (carry || less(_mod, SIZE, fld1.im_rep, SIZE))
+        _subtract(fld1.im_rep, SIZE, false, _mod, SIZE);
 }
 
 //Subtract element two from element one
-cu_fun void substract(Field & fld1, const Field & fld2)
+cu_fun void Scalar::subtract(Scalar &fld1, const Scalar &fld2) const
 {
-    if(substract(fld1.im_rep, SIZE, fld2.im_rep, SIZE) == -1)
-    {
-        modulo(fld1.im_rep, SIZE, _mod, SIZE);
-    }
+    bool carry = false;
+    if (less(fld1.im_rep, SIZE, fld2.im_rep, SIZE))
+        carry = _add(fld1.im_rep, SIZE, _mod, SIZE);
+    _subtract(fld1.im_rep, SIZE, carry, fld2.im_rep, SIZE);
 }
 
 //Multiply two elements
-cu_fun void mul(Field & fld1, const Field & fld2)
+cu_fun void Scalar::mul(Scalar &fld1, const Scalar &fld2, const uint32_t *mod) const
 {
-    uint32_t * tmp = multiply(fld1.im_rep, SIZE, fld2.im_rep, SIZE);
-    //size of tmp is 2*size
-    modulo(tmp, 2*SIZE, _mod, SIZE);
-    //Last size words are the result
-    for(size_t i = 0; i < SIZE; i++)
-        fld1.im_rep[i] = tmp[SIZE + i]; 
+    uint32_t tmp[SIZE + 2] = {0};
+
+    ciosMontgomeryMultiply(tmp, fld1.im_rep, SIZE, fld2.im_rep, mod);
+    for (size_t i = 0; i < SIZE; i++)
+        fld1.im_rep[i] = tmp[i];
 }
 
-//Computes the multiplicative inverse of this element, if nonzero
-cu_fun void mul_inv(Field & fld1)
+cu_fun void to_monty(Scalar &a)
 {
-    //TODO implement
+    // a = a << 2^(32*SIZE)
+    // a = a % _mod
+}
+
+cu_fun void from_monty(Scalar &a)
+{
+    Scalar s = Scalar::one();
+    a = a * s;
 }
 
 //Exponentiates this element
-cu_fun void pow(Field & fld1, const size_t pow)
+cu_fun void Scalar::pow(Scalar &fld1, const uint32_t pow) const
 {
-    uint32_t * tmp = fld1.im_rep;
-    for(size_t i = 0; i < pow; i++)
+    if (pow == 0)
     {
-        tmp = multiply(tmp, SIZE, fld1.im_rep, SIZE);
-        modulo(tmp, 2 * SIZE, _mod, SIZE);
-        for(size_t i = 0; i < SIZE; i++)
-            tmp[i] = tmp[SIZE + i];
+        fld1 = Scalar::one();
+        return;
     }
+
+    if (pow == 1)
+    {
+        return;
+    }
+
+    uint32_t tmp[SIZE + 2];
+    uint32_t temp[SIZE];
+
+    to_monty(fld1);
+
+    for (size_t i = 0; i < SIZE; i++)
+        temp[i] = fld1.im_rep[i];
+
+    for (size_t i = 0; i < pow - 1; i++)
+    {
+        memset(tmp, 0, (SIZE + 2) * sizeof(uint32_t));
+        ciosMontgomeryMultiply(tmp, fld1.im_rep, SIZE, temp, _mod);
+        for (size_t k = 0; k < SIZE; k++)
+            fld1.im_rep[k] = tmp[k];
+    }
+    from_monty(fld1);
 }
 
-
-}
+} // namespace fields

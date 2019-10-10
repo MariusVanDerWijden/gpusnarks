@@ -94,7 +94,7 @@ struct Field {
     return -1;
 }
 
- int substract(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
+ int subtract(uint32_t* element1, const size_t e1_size, const uint32_t* element2, const size_t e2_size)
 {
     assert(e1_size >= e2_size);
     bool carry = false;
@@ -116,7 +116,7 @@ struct Field {
 {
     while(!less(element, e_size, _mod, mod_size))
     {
-        if(substract(element, e_size, _mod, mod_size) == -1)
+        if(subtract(element, e_size, _mod, mod_size) == -1)
             return; //TODO handle negative case
     }
 } 
@@ -184,9 +184,9 @@ void double(Field & fld)
 }
 
 //Subtract element two from element one
- void substract(Field & fld1, const Field & fld2)
+ void subtract(Field & fld1, const Field & fld2)
 {
-    if(substract(fld1.im_rep, SIZE, fld2.im_rep, SIZE) == -1)
+    if(subtract(fld1.im_rep, SIZE, fld2.im_rep, SIZE) == -1)
     {
         modulo(fld1.im_rep, SIZE, _mod, SIZE);
     }

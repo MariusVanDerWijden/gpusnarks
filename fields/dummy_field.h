@@ -52,7 +52,7 @@ class Field {
     	//Adds two elements
     	static void add(Field & fld1, const Field & fld2);
     	//Subtract element two from element one
-    	static void substract(Field & fld1, const Field & fld2);
+    	static void subtract(Field & fld1, const Field & fld2);
     	//Multiply two elements
     	static void mul(Field & fld1, const Field & fld2);
     	//Computes the multiplicative inverse of this element, if nonzero.
