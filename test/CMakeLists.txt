@@ -13,5 +13,10 @@ include_directories(BEFORE ..)
 cuda_add_executable(fft_test main.cpp)
 
 if(OpenMP_CXX_FOUND)
-    target_link_libraries(fft_test OpenMP::OpenMP_CXX fft_cuda multi_exp_cuda fields)
+    #set to 1 for FFT, 0 for MultiExp
+    if(1)
+        target_link_libraries(fft_test OpenMP::OpenMP_CXX fft_cuda fields)
+    else()
+        target_link_libraries(fft_test OpenMP::OpenMP_CXX multi_exp_cuda fields)
+    endif()
 endif()

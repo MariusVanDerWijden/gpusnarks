@@ -23,12 +23,19 @@
 #include <vector>
 #include <iostream>
 
+#include "multi_exp.h"
 #include "device_field.h"
 #include "device_field_operators.h"
-#include "multi_exp.h"
 
 #define LOG_NUM_THREADS 16
 #define NUM_THREADS (1 << LOG_NUM_THREADS)
+
+#define CUDA_CALL( call )               \
+{                                       \
+cudaError_t result = call;              \
+if ( cudaSuccess != result )            \
+    std::cerr << "CUDA error " << result << " in " << __FILE__ << ":" << __LINE__ << ": " << cudaGetErrorString( result ) << " (" << #call << ")" << std::endl;  \
+}
 
 template <typename FieldT>
 __inline__ __device__
@@ -97,28 +104,35 @@ deviceReduceKernel(FieldT *result, const FieldT *a, const FieldMul *mul, const s
 template<typename FieldT, typename FieldMul> 
 FieldT multiexp (std::vector<FieldT> &a, std::vector<FieldMul> &mul) {
     assert(a.size() == mul.size());
-    size_t blocks = NUM_THREADS / 512 + 1;
-    size_t threads = NUM_THREADS > 512 ? 512 : NUM_THREADS;
-    size_t sMem = 32 * sizeof(FieldT);
+    size_t threads = 256;
+    size_t blocks = min((a.size() + threads - 1) / threads, (unsigned long)256);
+    size_t sMem = threads * sizeof(FieldT);
     
     FieldT *in;
-    cudaMalloc((void**)&in, sizeof(FieldT) * a.size());
-    cudaMemcpy(in, (void**)&a[0], sizeof(FieldT) * a.size(), cudaMemcpyHostToDevice);
+    CUDA_CALL( cudaMalloc((void**)&in, sizeof(FieldT) * a.size()); )
+    CUDA_CALL( cudaMemcpy(in, (void**)&a[0], sizeof(FieldT) * a.size(), cudaMemcpyHostToDevice); )
 
     FieldMul *cmul;
-    cudaMalloc((void**)&cmul, sizeof(FieldMul) * a.size());
-    cudaMemcpy(cmul, (void**)&mul[0], sizeof(FieldMul) * a.size(), cudaMemcpyHostToDevice);
+    CUDA_CALL( cudaMalloc((void**)&cmul, sizeof(FieldMul) * a.size()); )
+    CUDA_CALL( cudaMemcpy(cmul, (void**)&mul[0], sizeof(FieldMul) * a.size(), cudaMemcpyHostToDevice); )
 
     FieldT *temp;
-    cudaMalloc(&temp, sizeof(FieldT) * blocks);
+    CUDA_CALL( cudaMalloc((void**)&temp, sizeof(FieldT) * blocks); )
     deviceReduceKernel<FieldT,FieldMul><<<blocks, threads, sMem>>>(temp, in, cmul, a.size());
     
-    FieldT *result;
-    cudaMalloc(&result, sizeof(FieldT));
-    deviceReduceKernelSecond<FieldT><<<1, blocks, sMem>>>(result, temp, blocks);
+    FieldT *out;
+    CUDA_CALL( cudaMalloc(&out, sizeof(FieldT)); )
+    deviceReduceKernelSecond<FieldT><<<1, 256, sMem>>>(out, temp, blocks);
+
+    cudaError_t error = cudaGetLastError();
+    if(error != cudaSuccess)
+    {
+        printf("CUDA error: %s\n", cudaGetErrorString(error));
+        exit(-2);
+    }
 
     FieldT cpuResult;
-    cudaMemcpy(&cpuResult, result, sizeof(FieldT), cudaMemcpyDeviceToHost);
+    cudaMemcpy((void**)&cpuResult, out, sizeof(FieldT), cudaMemcpyDeviceToHost);
     return cpuResult;
 }
 

@@ -28,7 +28,7 @@
 
 #define LOG_NUM_THREADS 10
 #define NUM_THREADS (1 << LOG_NUM_THREADS)
-#define LOG_CONSTRAINTS 16
+#define LOG_CONSTRAINTS 19
 #define CONSTRAINTS (1 << LOG_CONSTRAINTS)
 
 #define CUDA_CALL( call )               \
@@ -137,7 +137,6 @@ void best_fft (std::vector<FieldT> &a, const FieldT &omg)
     cudaError_t error = cudaGetLastError();
     if(error != cudaSuccess)
     {
-        // print the CUDA error message and exit
         printf("CUDA error: %s\n", cudaGetErrorString(error));
         exit(-1);
     }
@@ -148,6 +147,4 @@ void best_fft (std::vector<FieldT> &a, const FieldT &omg)
 }
 
 //List with all templates that should be generated
-//template void best_fft(std::vector<int> &a, const int &omg);
-//template void best_fft(fields::Field *v, size_t _size, const fields::Field &omg);
 template void best_fft(std::vector<fields::Scalar> &v, const fields::Scalar &omg);

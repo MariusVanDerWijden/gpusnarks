@@ -16,13 +16,12 @@
  * limitations under the License.
  *****************************************************************************/
 
-#pragma once 
+#pragma once
 #include <vector>
 
 #ifdef __cplusplus
 
-template<typename FieldT> 
-void best_fft (std::vector<FieldT> &a, const FieldT &omg);
-	//void best_fft (FieldT *a, size_t _size, const FieldT &omg);
+template <typename FieldT>
+void best_fft(std::vector<FieldT> &a, const FieldT &omg);
 
 #endif

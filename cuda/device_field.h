@@ -425,6 +425,13 @@ struct mnt4753_G1
         Scalar::print(f.z);
         printf("----\n");
     }
+
+    static void testEquality(mnt4753_G1 f1, mnt4753_G1 f2)
+    {
+        Scalar::testEquality(f1.x, f2.x);
+        Scalar::testEquality(f1.y, f2.y);
+        Scalar::testEquality(f1.z, f2.z);
+    }
 };
 
 } // namespace fields
