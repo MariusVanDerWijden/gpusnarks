@@ -1,0 +1,15 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: nvidia/cuda:9.2-devel-ubuntu18.04
+    steps:
+      - run: apt-get update && apt-get install -qy git cmake
+
+      - checkout
+
+      - run: cmake -H. -Bbuild
+      - run: cmake --build build -- -j4
+      - store_artifacts:
+          path: build/test/fft_test
+          destination: fft_test
