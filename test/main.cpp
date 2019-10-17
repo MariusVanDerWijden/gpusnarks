@@ -35,7 +35,7 @@ void test_fft()
 {
 #ifdef FFT
     printf("\nTEST FFT\n");
-    size_t _size = 1 << 19;
+    size_t _size = 1 << 16;
     std::vector<fields::Scalar> v1;
     std::vector<fields::Scalar> v2;
 

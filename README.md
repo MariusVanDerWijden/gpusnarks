@@ -1,4 +1,4 @@
-# GPU-SNARK
+# GPU-SNARKs
 
 A GPU snark accelerator written at ETHParis.
 It speeds up the Fast Fourier Transformation on Finite Elements by more than **40 times**.
@@ -14,10 +14,13 @@ cmake .. -DCMAKE_C_COMPILER=/usr/bin/gcc-6
 make
 ```
 
-## Benchmarks 32-bit
+## Benchmarks 
+
+The benchmarks are
+
+### FFT 32-bit
 
 CPU: Intel(R) Xeon(R) CPU E5-2698 v4 @ 2.20GHz runs with 8 threads
-
 GPU: GTX 1080
 
 These benchmarks are only valid for 32 bit values.
@@ -32,10 +35,9 @@ These benchmarks are only valid for 32 bit values.
 
 * These benchmarks haven't finished in time for the submission to ETHParis
 
-## Benchmarks 768-bit
+### FFT 768-bit
 
 CPU: Intel(R) Core(TM) i7-7820X CPU @ 3.60GHz
-
 GPU: GTX 1060
 
 | Constraints | Constraints | GPU     | CPU      |
@@ -44,6 +46,14 @@ GPU: GTX 1060
 | 2^18        | 262144      | 21.42 s | 424.73 s |
 | 2^19        | 524288      | 40.09 s | 858.22 s |
 
+### Multiexp 
+
+CPU: Intel(R) Core(TM) i7-7820X CPU @ 3.60GHz
+GPU: GTX 1060
+
+| Constraints | Constraints | GPU    | CPU    |
+| ----------- | ----------- | ------ | ------ |
+| 2^20        | 1048576     | 0.17 s | 4.38 s |
 
 ## License
 

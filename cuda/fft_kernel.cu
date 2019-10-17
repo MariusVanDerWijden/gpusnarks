@@ -28,7 +28,7 @@
 
 #define LOG_NUM_THREADS 10
 #define NUM_THREADS (1 << LOG_NUM_THREADS)
-#define LOG_CONSTRAINTS 19
+#define LOG_CONSTRAINTS 16
 #define CONSTRAINTS (1 << LOG_CONSTRAINTS)
 
 #define CUDA_CALL( call )               \
