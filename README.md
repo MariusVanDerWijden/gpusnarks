@@ -46,14 +46,27 @@ GPU: GTX 1060
 | 2^18        | 262144      | 21.42 s | 424.73 s |
 | 2^19        | 524288      | 40.09 s | 858.22 s |
 
-### Multiexp 
+### Multiexp Scalar
 
 CPU: Intel(R) Core(TM) i7-7820X CPU @ 3.60GHz
 GPU: GTX 1060
 
 | Constraints | Constraints | GPU    | CPU    |
 | ----------- | ----------- | ------ | ------ |
+| 2^18        | 262144      | 0.15 s | 1.07 s |
+| 2^19        | 524288      | 0.17 s | 2.16 s |
 | 2^20        | 1048576     | 0.17 s | 4.38 s |
+
+### Multiexp MNT4753_G1
+
+CPU: Intel(R) Core(TM) i7-7820X CPU @ 3.60GHz
+GPU: GTX 1060
+
+| Constraints | Constraints | GPU    | CPU      |
+| ----------- | ----------- | ------ | -------- |
+| 2^16        | 65536       | 0.29 s | 23.48 s  |
+| 2^18        | 262144      | 0.86 s | 91.96 s  |
+| 2^20        | 1048576     | 3.35 s | 372.67 s |
 
 ## License
 

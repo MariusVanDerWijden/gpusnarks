@@ -104,7 +104,7 @@ deviceReduceKernel(FieldT *result, const FieldT *a, const FieldMul *mul, const s
 template<typename FieldT, typename FieldMul> 
 FieldT multiexp (std::vector<FieldT> &a, std::vector<FieldMul> &mul) {
     assert(a.size() == mul.size());
-    size_t threads = 256;
+    size_t threads = sizeof(FieldT) == 96 ? 256 : 128;
     size_t blocks = min((a.size() + threads - 1) / threads, (unsigned long)256);
     size_t sMem = threads * sizeof(FieldT);
     

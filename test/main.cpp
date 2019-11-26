@@ -7,7 +7,7 @@
 #include <string.h>
 
 // For multi-exp comment out the following define, and set the if(1) to if(0) in the CMakeList.txt.
-#define FFT
+//#define FFT
 
 #ifdef FFT
 #include "fft_host.h"
@@ -28,7 +28,7 @@ int main(void)
 {
     test_fft();
     test_multiexp();
-    //test_multiexp_mnt4753_G1();
+    test_multiexp_mnt4753_G1();
 }
 
 void test_fft()
@@ -90,7 +90,7 @@ void test_multiexp()
 {
 #ifndef FFT
     printf("\nTEST MULTI_EXP\n");
-    size_t _size = 1 << 20;
+    size_t _size = 1 << 18;
     std::vector<fields::Scalar> v1;
     std::vector<fields::Scalar> v2;
     std::vector<fields::Scalar> v3;
